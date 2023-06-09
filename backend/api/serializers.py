@@ -1,39 +1,40 @@
+from django.db import transaction
 from rest_framework import serializers
-from items.models import Order, Sku
+from items.models import Sku, Order, OrderSku
 
 
-class SkuSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sku
-        fields = ["sku", "quantity"]
+class CreateOrderSerializer(serializers.Serializer):
+    skus = serializers.ListField(
+        child=serializers.DictField(
+            child=serializers.CharField(max_length=100), allow_empty=False
+        )
+    )
 
-
-class CreateOrderSerializer(serializers.ModelSerializer):
-    skus = SkuSerializer(many=True)
-
-    class Meta:
-        model = Order
-        fields = "__all__"
-
+    @transaction.atomic
     def create(self, validated_data):
         skus_data = validated_data.pop("skus")
-        order = Order.objects.create(status="forming")
 
-        for sku_data in skus_data:
-            sku = Sku.objects.select_for_update().get(sku=sku_data["sku"])
-            quantity = sku_data["quantity"]
+        with transaction.atomic():
+            order = Order.objects.create(status="forming")
+            for sku_data in skus_data:
+                sku_id = sku_data["sku"]
+                quantity = int(sku_data["quantity"])
 
-            if quantity <= 0:
-                raise serializers.ValidationError(f"Invalid quantity for Sku {sku.sku}")
+                try:
+                    sku = Sku.objects.select_for_update().get(sku=sku_id)
+                except Sku.DoesNotExist:
+                    raise serializers.ValidationError("Invalid Sku.")
 
-            if sku.quantity < quantity:
-                raise serializers.ValidationError(
-                    f"Insufficient quantity for Sku {sku.sku}"
+                if sku.available_quantity < quantity:
+                    raise serializers.ValidationError(
+                        "Insufficient quantity for Sku."
+                    )
+
+                OrderSku.objects.create(
+                    order=order, sku=sku, quantity=quantity
                 )
 
-            sku.quantity -= quantity
-            sku.save()
-
-            order.skus.add(sku, through_defaults={"quantity": quantity})
+                sku.available_quantity -= quantity
+                sku.save()
 
         return order
