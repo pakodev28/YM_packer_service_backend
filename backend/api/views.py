@@ -16,7 +16,7 @@ User = get_user_model()
 @permission_classes((IsAdminUser,))
 def sign_up(request):
     """
-    Регистрация упаковщика.
+    Регистрация упаковщика. Доступен только админу.
     """
 
     serializer = SignUpSerializer(data=request.data)
@@ -28,7 +28,7 @@ def sign_up(request):
 @api_view(('POST',))
 def get_token(request):
     """
-    Выдача токена.
+    Авторизация пользователя (выдача токена).
     """
 
     serializer = GetTokenSerializer(data=request.data)

@@ -21,7 +21,7 @@ class SignUpSerializer(serializers.ModelSerializer):
 
 class GetTokenSerializer(serializers.Serializer):
     """
-    Сериализатор для получения токена.
+    Сериализатор для получения токена (авторизация).
     """
 
     confirmation_code = serializers.CharField(required=True, max_length=128)
