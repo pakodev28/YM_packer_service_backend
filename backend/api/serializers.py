@@ -57,6 +57,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def create_order_sku(order, skus):
+        """Метод для создания объектов модели OrderSku.
+        """
         for element in skus:
             main_sku = Sku.objects.get(sku=element['sku'])
             if main_sku.quantity >= element['quantity']:
@@ -66,7 +68,6 @@ class OrderSerializer(serializers.ModelSerializer):
                 main_sku.quantity -= element['quantity']
             else:
                 raise  # TODO надо выбросить исключение типа товары закончились
-        return
 
     def create(self, validated_data):
         skus = validated_data.pop('sku')
