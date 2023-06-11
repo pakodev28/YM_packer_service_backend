@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 
-from .serializers import SignUpSerializer, GetTokenSerializer
+from .serializers import SignUpSerializer, GetTokenSerializer, OrderSerializer
 
 User = get_user_model()
 
@@ -37,3 +37,11 @@ def get_token(request):
     user = get_object_or_404(User, id=confirmation_code)
     token = str(AccessToken.for_user(user))
     return Response({'token': token}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+def create_order(request):
+    serializer = OrderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)

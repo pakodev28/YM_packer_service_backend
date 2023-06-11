@@ -26,7 +26,7 @@ class Order(models.Model):
         help_text="Выберите товары",
         related_name="orders",
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)  # Статус заказа
     whs = models.PositiveSmallIntegerField(default=0)  # код сортировочного центра
     box_num = models.PositiveSmallIntegerField()  # количество коробок
     selected_cartontype = models.ForeignKey(
@@ -52,6 +52,11 @@ class Order(models.Model):
     )
     goods_weight = models.FloatField()  # Общий вес товаров
 
+    class Meta:
+        ordering = ['status']
+        verbose_name = 'Заказ'
+        verbose_name_plural = 'Заказы'
+
 
 class Sku(models.Model):
     """
@@ -65,6 +70,11 @@ class Sku(models.Model):
     quantity = models.IntegerField(default=0)  # Количество на складе
     goods_wght = models.FloatField(default=0.0)  # Вес товара
     cargotypes = models.ManyToManyField("CargoType")
+
+    class Meta:
+        ordering = ['sku']
+        verbose_name = 'Товар'
+        verbose_name_plural = 'Товары'
 
     @property
     def volume(self):
@@ -82,6 +92,11 @@ class CargoType(models.Model):
     cargotype = models.PositiveIntegerField(unique=True)
     description = models.CharField(max_length=255)
 
+    class Meta:
+        ordering = ['cargotype']
+        verbose_name = 'Карготип'
+        verbose_name_plural = 'Карготипы'
+
     def __str__(self):
         return str(self.cargotype)
 
@@ -93,6 +108,11 @@ class CartonType(models.Model):
     length = models.FloatField()
     width = models.FloatField()
     height = models.FloatField()
+
+    class Meta:
+        ordering = ['cartontype']
+        verbose_name = 'Упаковка'
+        verbose_name_plural = 'Упаковки'
 
     @property
     def get_volume(self):
