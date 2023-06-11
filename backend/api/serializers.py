@@ -68,6 +68,7 @@ class CreateOrderSerializer(serializers.ModelSerializer):
                                         order=order,
                                         amount=element['amount'])
                 main_sku.quantity -= element['amount']
+                main_sku.save()
             else:
                 raise  # TODO надо выбросить исключение типа товары закончились
 
