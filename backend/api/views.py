@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 
-from .serializers import SignUpSerializer, GetTokenSerializer, OrderSerializer
+from .serializers import SignUpSerializer, GetTokenSerializer, CreateOrderSerializer
 
 User = get_user_model()
 
@@ -41,7 +41,7 @@ def get_token(request):
 
 @api_view(['POST'])
 def create_order(request):
-    serializer = OrderSerializer(data=request.data)
+    serializer = CreateOrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     serializer.save()
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response({'успешно': 'заказ формируется'}, status=status.HTTP_200_OK)

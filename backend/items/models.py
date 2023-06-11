@@ -18,7 +18,7 @@ class Order(models.Model):
     orderkey = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, primary_key=True
     )  # id заказа
-    who = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    who = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders", blank=True, null=True)
     sku = models.ManyToManyField(
         "Sku",
         through="OrderSku",
@@ -28,7 +28,7 @@ class Order(models.Model):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)  # Статус заказа
     whs = models.PositiveSmallIntegerField(default=0)  # код сортировочного центра
-    box_num = models.PositiveSmallIntegerField()  # количество коробок
+    box_num = models.PositiveSmallIntegerField(blank=True, null=True)  # количество коробок
     selected_cartontype = models.ForeignKey(
         "CartonType",
         null=True,
@@ -50,7 +50,7 @@ class Order(models.Model):
     tracking_id = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True
     )
-    goods_weight = models.FloatField()  # Общий вес товаров
+    goods_weight = models.FloatField(blank=True, null=True)  # Общий вес товаров
 
     class Meta:
         ordering = ['status']

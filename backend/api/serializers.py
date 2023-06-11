@@ -47,7 +47,7 @@ class OrderSkuSerializer(serializers.ModelSerializer):
                   'amount')
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class CreateOrderSerializer(serializers.ModelSerializer):
     """Сериализатор для создания заказа.
     Принимает вложенный сериализатор OrderSkuSerializer.
     """
@@ -55,7 +55,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = 'sku'
+        fields = ('sku',)
 
     @staticmethod
     def create_order_sku(order, skus):
