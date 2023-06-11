@@ -47,8 +47,8 @@ class Order(models.Model):
     pack_volume = models.FloatField(
         null=True, blank=True
     )  # рассчитанный объём упакованных товаров
-    trackingid = models.UUIDField(
-        default=uuid.uuid4, editable=False, null=True, blank=True, unique=True
+    tracking_id = models.UUIDField(
+        default=uuid.uuid4, editable=False, unique=True
     )
     goods_weight = models.FloatField()  # Общий вес товаров
 
@@ -105,4 +105,4 @@ class CartonType(models.Model):
 class OrderSku(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()  # Количество товара в заказе
+    amount = models.PositiveIntegerField()  # Количество товара в заказе

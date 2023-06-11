@@ -39,12 +39,19 @@ class GetTokenSerializer(serializers.Serializer):
 
 
 class OrderSkuSerializer(serializers.ModelSerializer):
-    sku = serializers.UUIDField(format='hex_verbose')
+    """Сериализатор промежуточной модели OrderSku.
+    Применяется, как поле в сериализаторе OrderSerializer.
+    На вход принимает 2 поля:
+        - id
+        - amount.
+    """
+
+    id = serializers.UUIDField(format='hex_verbose')
 
     class Meta:
         model = OrderSku
-        fields = ('sku',
-                  'quantity')
+        fields = ('id',
+                  'amount')
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -59,15 +66,15 @@ class OrderSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def create_order_sku(order, skus):
-        """Метод для создания объектов модели OrderSku.
+        """Метод для создания объектов модели OrderSku (промежуточная модель).
         """
         for element in skus:
-            main_sku = get_object_or_404(Sku, sku=element['sku'])
-            if main_sku.quantity >= element['quantity']:
+            main_sku = get_object_or_404(Sku, sku=element['id'])
+            if main_sku.quantity >= element['amount']:
                 OrderSku.objects.create(sku=main_sku,
                                         order=order,
-                                        quantity=element['quantity'])
-                main_sku.quantity -= element['quantity']
+                                        amount=element['amount'])
+                main_sku.quantity -= element['amount']
             else:
                 raise  # TODO надо выбросить исключение типа товары закончились
 
