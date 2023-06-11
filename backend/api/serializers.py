@@ -2,6 +2,8 @@ import uuid
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+
 
 from items.models import Order, OrderSku, Sku
 
@@ -60,9 +62,9 @@ class OrderSerializer(serializers.ModelSerializer):
         """Метод для создания объектов модели OrderSku.
         """
         for element in skus:
-            main_sku = Sku.objects.get(sku=element['sku'])
+            main_sku = get_object_or_404(Sku, sku=element['sku'])
             if main_sku.quantity >= element['quantity']:
-                OrderSku.objects.create(sku=element['sku'],
+                OrderSku.objects.create(sku=main_sku,
                                         order=order,
                                         quantity=element['quantity'])
                 main_sku.quantity -= element['quantity']
