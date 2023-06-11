@@ -46,7 +46,7 @@ class OrderSkuSerializer(serializers.ModelSerializer):
         - amount.
     """
 
-    id = serializers.UUIDField(format='hex_verbose')
+    id = serializers.UUIDField(format='hex')
 
     class Meta:
         model = OrderSku
@@ -82,4 +82,5 @@ class OrderSerializer(serializers.ModelSerializer):
         skus = validated_data.pop('sku')
         order = Order.objects.create(status='forming')
         self.create_order_sku(order, skus)
+
         return order
