@@ -18,7 +18,7 @@ class Order(models.Model):
     orderkey = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, primary_key=True
     )  # id заказа
-    who = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
+    who = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     sku = models.ManyToManyField(
         "Sku",
         through="OrderSku",
@@ -62,8 +62,7 @@ class Sku(models.Model):
     length = models.FloatField()
     width = models.FloatField()
     height = models.FloatField()
-    quantity = models.PositiveIntegerField(default=0)  # Количество
-    available = models.BooleanField(default=True)  # Есть ли в наличии
+    quantity = models.IntegerField(default=0)  # Количество на складе
     goods_wght = models.FloatField(default=0.0)  # Вес товара
     cargotypes = models.ManyToManyField("CargoType")
 
@@ -106,4 +105,4 @@ class CartonType(models.Model):
 class OrderSku(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField()  # Количество товара в заказе

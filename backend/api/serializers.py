@@ -3,6 +3,8 @@ import uuid
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
+from items.models import Order, OrderSku, Sku
+
 User = get_user_model()
 
 
@@ -32,3 +34,42 @@ class GetTokenSerializer(serializers.Serializer):
         except ValueError:
             raise serializers.ValidationError('Некорректные данные (карта неисправна), обратитесь к админу')
         return value
+
+
+class OrderSkuSerializer(serializers.ModelSerializer):
+    sku = serializers.UUIDField(format='hex_verbose')
+
+    class Meta:
+        model = OrderSku
+        fields = ('sku',
+                  'quantity')
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания заказа.
+    Принимает вложенный сериализатор OrderSkuSerializer.
+    """
+    sku = OrderSkuSerializer(many=True)
+
+    class Meta:
+        model = Order
+        fields = 'sku'
+
+    @staticmethod
+    def create_order_sku(order, skus):
+        for element in skus:
+            main_sku = Sku.objects.get(sku=element['sku'])
+            if main_sku.quantity >= element['quantity']:
+                OrderSku.objects.create(sku=element['sku'],
+                                        order=order,
+                                        quantity=element['quantity'])
+                main_sku.quantity -= element['quantity']
+            else:
+                raise  # TODO надо выбросить исключение типа товары закончились
+        return
+
+    def create(self, validated_data):
+        skus = validated_data.pop('sku')
+        order = Order.objects.create(status='forming')
+        self.create_order_sku(order, skus)
+        return order
