@@ -150,7 +150,7 @@ class OrderSku(models.Model):
 class Table(models.Model):
     name = models.CharField(max_length=100, unique=True)
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="table"
+        User, on_delete=models.SET_NULL, related_name="table"
     )
 
     def __str__(self):
@@ -160,7 +160,7 @@ class Table(models.Model):
 class Printer(models.Model):
     barcode = models.UUIDField(default=uuid.uuid4, unique=True)
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="printer"
+        User, on_delete=models.SET_NULL, related_name="printer"
     )
 
     def __str__(self):
