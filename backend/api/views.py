@@ -1,21 +1,3 @@
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from .serializers import CreateOrderSerializer
-
-
-# class CreateOrderAPIView(APIView):
-#     def post(self, request):
-#         serializer = CreateOrderSerializer(data=request.data)
-#         if serializer.is_valid():
-#             order = serializer.save()
-#             return Response(
-#                 {"orderkey": order.pk, "order_status": order.status}, status=status.HTTP_201_CREATED
-#             )
-#         return Response(
-#                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
-#             )
-
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import AccessToken
@@ -26,11 +8,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 
-
 from .serializers import (
     SignUpSerializer,
     GetTokenSerializer,
     CreateOrderSerializer,
+    LoadSkuOrderToCellSerializer,
 )
 
 User = get_user_model()
@@ -73,3 +55,14 @@ class CreateOrderAPIView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoadSkuOrderToCellView(APIView):
+    def post(self, request):
+        serializer = LoadSkuOrderToCellSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Cell order created successfully"},
+            status.HTTP_201_CREATED,
+        )

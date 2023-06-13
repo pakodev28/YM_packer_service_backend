@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -87,6 +88,8 @@ class Sku(models.Model):
     goods_wght = models.FloatField(default=0.0)  # Вес товара
     cargotypes = models.ManyToManyField("CargoType")
     image = models.ImageField(upload_to="sku_images/", blank=True, null=True)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
 
     class Meta:
         ordering = ["sku"]
@@ -148,19 +151,34 @@ class OrderSku(models.Model):
 
 
 class Table(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     user = models.OneToOneField(
-        User, on_delete=models.SET_NULL, related_name="table"
+        User,
+        on_delete=models.SET_NULL,
+        related_name="table",
+        blank=True,
+        null=True,
     )
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "user"], name="unique_name_user"
+            )
+        ]
+
 
 class Printer(models.Model):
     barcode = models.UUIDField(default=uuid.uuid4, unique=True)
     user = models.OneToOneField(
-        User, on_delete=models.SET_NULL, related_name="printer"
+        User,
+        on_delete=models.SET_NULL,
+        related_name="printer",
+        blank=True,
+        null=True,
     )
 
     def __str__(self):
@@ -191,4 +209,16 @@ class Cell(models.Model):
 
 class CellOrderSku(models.Model):
     cell = models.ForeignKey(Cell, on_delete=models.CASCADE)
-    order_sku = models.ForeignKey(OrderSku, on_delete=models.CASCADE)
+    sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = "Товар ячейки заказа"
+        verbose_name_plural = "Товары ячейки заказа"
+
+    def save(self, *args, **kwargs):
+        if not self.order.sku.filter(pk=self.sku.pk).exists():
+            raise ValidationError("SKU does not belong to the current order")
+
+        super().save(*args, **kwargs)

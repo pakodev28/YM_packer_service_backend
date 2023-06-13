@@ -1,24 +1,60 @@
 from django.contrib import admin
+from .models import (
+    Order,
+    Sku,
+    CargoType,
+    CartonType,
+    OrderSku,
+    Table,
+    Printer,
+    Cell,
+    CellOrderSku,
+)
 
-from .models import *
 
-
-class OrderSkuInline(admin.StackedInline):
+class OrderSkuInline(admin.TabularInline):
     model = OrderSku
-    min_num = 1
+    extra = 1
+    verbose_name_plural = "Order Skus"
 
 
-@admin.register(Order)
+class SkuInline(admin.TabularInline):
+    model = Sku.cargotypes.through
+    extra = 1
+    verbose_name_plural = "Skus in Cargo Type"
+
+
+class CellOrderSkuInline(admin.TabularInline):
+    model = CellOrderSku
+    extra = 1
+    verbose_name_plural = "Skus in Cell"
+
+
 class OrderAdmin(admin.ModelAdmin):
-    list_display = [
-        "orderkey",
-        "who",
-        "status",
-    ]  # TODO разобраться с картинками
-    list_per_page = 6
-    inlines = (OrderSkuInline,)
+    inlines = [OrderSkuInline]
+    exclude = ("sku",)
+    list_display = ("orderkey", "status", "whs", "box_num")
+    list_filter = ("status",)
+    search_fields = ("orderkey",)
 
 
-admin.site.register(Sku)
-admin.site.register(CartonType)
+class SkuAdmin(admin.ModelAdmin):
+    inlines = [SkuInline]
+    list_display = ("sku", "length", "width", "height", "quantity")
+    list_filter = ("cargotypes",)
+    search_fields = ("sku",)
+
+
+class CellAdmin(admin.ModelAdmin):
+    inlines = [CellOrderSkuInline]
+    list_display = ("code", "order", "table")
+    search_fields = ("code",)
+
+
+admin.site.register(Order, OrderAdmin)
+admin.site.register(Sku, SkuAdmin)
 admin.site.register(CargoType)
+admin.site.register(CartonType)
+admin.site.register(Table)
+admin.site.register(Printer)
+admin.site.register(Cell, CellAdmin)
