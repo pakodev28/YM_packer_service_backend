@@ -165,3 +165,30 @@ class Printer(models.Model):
 
     def __str__(self):
         return str(self.barcode)
+
+
+class Cell(models.Model):
+    """
+    Ячейка.
+    """
+
+    code = models.CharField(max_length=4, unique=True)
+    order = models.ForeignKey(
+        Order, on_delete=models.SET_NULL, blank=True, null=True
+    )
+    table = models.ForeignKey(
+        Table, on_delete=models.SET_NULL, blank=True, null=True
+    )
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "Ячейка"
+        verbose_name_plural = "Ячейки"
+
+    def __str__(self):
+        return self.code
+
+
+class CellOrderSku(models.Model):
+    cell = models.ForeignKey(Cell, on_delete=models.CASCADE)
+    order_sku = models.ForeignKey(OrderSku, on_delete=models.CASCADE)
