@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 
 
 from items.models import Order, OrderSku, Sku, Cell, CellOrderSku, Table
@@ -58,8 +59,8 @@ class CreateOrderSerializer(serializers.Serializer):
 
         try:
             sku = Sku.objects.select_for_update().get(sku=sku_id)
-        except Sku.DoesNotExist:
-            raise serializers.ValidationError("Invalid Sku.")
+        except Sku.DoesNotExist as exc:
+            raise serializers.ValidationError("Invalid Sku.") from exc
 
         if sku.quantity < amount:
             raise serializers.ValidationError("Insufficient quantity for Sku.")
@@ -103,40 +104,18 @@ class LoadSkuOrderToCellSerializer(serializers.Serializer):
         table_name = validated_data.get("table")
         skus = validated_data.get("skus")
 
-        try:
-            cell = Cell.objects.get(code=code)
-        except Cell.DoesNotExist:
-            raise serializers.ValidationError(
-                f"Cell with code '{code}' does not exist"
-            )
-
-        try:
-            order = Order.objects.get(orderkey=orderkey)
-        except Order.DoesNotExist:
-            raise serializers.ValidationError(
-                f"Order with orderkey '{orderkey}' does not exist"
-            )
-
-        try:
-            table = Table.objects.get(name=table_name)
-        except Table.DoesNotExist:
-            raise serializers.ValidationError(
-                f"Table with name '{table_name}' does not exist"
-            )
+        cell = get_object_or_404(Cell, code=code)
+        order = get_object_or_404(Order, orderkey=orderkey)
+        table = get_object_or_404(Table, name=table_name)
 
         cell.table = table
         cell.save()
 
         for element in skus:
-            sku = element.get("sku")
+            sku_code = element.get("sku")
             quantity = element.get("quantity")
 
-            try:
-                sku = Sku.objects.get(sku=sku)
-            except Sku.DoesNotExist:
-                raise serializers.ValidationError(
-                    f"SKU with sku_code '{sku_code}' does not exist"
-                )
+            sku = get_object_or_404(Sku, sku=sku_code)
 
             CellOrderSku.objects.create(
                 cell=cell, sku=sku, order=order, quantity=quantity
