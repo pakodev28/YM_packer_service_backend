@@ -18,7 +18,9 @@ class Order(models.Model):
     orderkey = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, primary_key=True
     )  # id заказа
-    who = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders", blank=True, null=True)
+    who = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="orders", blank=True, null=True
+    )
     sku = models.ManyToManyField(
         "Sku",
         through="OrderSku",
@@ -28,7 +30,9 @@ class Order(models.Model):
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)  # Статус заказа
     whs = models.PositiveSmallIntegerField(default=0)  # код сортировочного центра
-    box_num = models.PositiveSmallIntegerField(blank=True, null=True)  # количество коробок
+    box_num = models.PositiveSmallIntegerField(
+        blank=True, null=True
+    )  # количество коробок
     selected_cartontype = models.ForeignKey(
         "CartonType",
         null=True,
@@ -47,15 +51,17 @@ class Order(models.Model):
     pack_volume = models.FloatField(
         null=True, blank=True
     )  # рассчитанный объём упакованных товаров
-    tracking_id = models.UUIDField(
-        default=uuid.uuid4, editable=False, unique=True
-    )
+    tracking_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     goods_weight = models.FloatField(blank=True, null=True)  # Общий вес товаров
+    pub_date = models.DateField(auto_now_add=True)
 
     class Meta:
-        ordering = ['status']
-        verbose_name = 'Заказ'
-        verbose_name_plural = 'Заказы'
+        ordering = ["status"]
+        verbose_name = "Заказ"
+        verbose_name_plural = "Заказы"
+
+    def __str__(self):
+        return self.orderkey
 
 
 class Sku(models.Model):
@@ -64,17 +70,19 @@ class Sku(models.Model):
     """
 
     sku = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
+    name = models.CharField("Название товара", max_length=64)
     length = models.FloatField()
     width = models.FloatField()
     height = models.FloatField()
-    quantity = models.IntegerField(default=0)  # Количество на складе
+    quantity = models.PositiveIntegerField(default=0)  # Количество на складе
     goods_wght = models.FloatField(default=0.0)  # Вес товара
     cargotypes = models.ManyToManyField("CargoType")
+    image = models.ImageField(upload_to="sku_images/", blank=True, null=True)
 
     class Meta:
-        ordering = ['sku']
-        verbose_name = 'Товар'
-        verbose_name_plural = 'Товары'
+        ordering = ["sku"]
+        verbose_name = "Товар"
+        verbose_name_plural = "Товары"
 
     @property
     def volume(self):
@@ -93,9 +101,9 @@ class CargoType(models.Model):
     description = models.CharField(max_length=255)
 
     class Meta:
-        ordering = ['cargotype']
-        verbose_name = 'Карготип'
-        verbose_name_plural = 'Карготипы'
+        ordering = ["cargotype"]
+        verbose_name = "Карготип"
+        verbose_name_plural = "Карготипы"
 
     def __str__(self):
         return str(self.cargotype)
@@ -110,9 +118,9 @@ class CartonType(models.Model):
     height = models.FloatField()
 
     class Meta:
-        ordering = ['cartontype']
-        verbose_name = 'Упаковка'
-        verbose_name_plural = 'Упаковки'
+        ordering = ["cartontype"]
+        verbose_name = "Упаковка"
+        verbose_name_plural = "Упаковки"
 
     @property
     def get_volume(self):
@@ -123,6 +131,6 @@ class CartonType(models.Model):
 
 
 class OrderSku(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_sku')
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField()  # Количество товара в заказе

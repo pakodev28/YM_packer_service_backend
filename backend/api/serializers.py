@@ -1,11 +1,11 @@
-import uuid
-
-from rest_framework import serializers
+from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
 
 from items.models import Order, OrderSku, Sku
+from users.models import Table
 
 User = get_user_model()
 
@@ -28,53 +28,117 @@ class GetTokenSerializer(serializers.Serializer):
     """
 
     confirmation_code = serializers.UUIDField(required=True,
-                                              format='hex')
+                                              format='hex_verbose')
 
 
-class OrderSkuSerializer(serializers.ModelSerializer):
-    """Сериализатор промежуточной модели OrderSku.
-    Применяется, как поле в сериализаторе OrderSerializer.
-    На вход принимает 2 поля:
-        - id
-        - amount.
-    """
+class CreatOrderSkuSerializer(serializers.ModelSerializer):
+    """Сериализатор промежуточной модели OrderSku."""
 
-    id = serializers.UUIDField(format='hex_verbose')
+    sku = serializers.UUIDField(format="hex_verbose")
 
     class Meta:
         model = OrderSku
-        fields = ('id',
-                  'amount')
+        fields = ("sku", "amount")
 
 
-class CreateOrderSerializer(serializers.ModelSerializer):
+class ReadOrderSkuSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField(source='sku.id')
+    name = serializers.ReadOnlyField(source='sku.name')
+    image = Base64ImageField(source='sku.image')
+    goods_wght = serializers.ReadOnlyField(source='sku.goods_wght')
+
+    class Meta:
+        model = OrderSku
+        fields = ('id', 'name',
+                  'image', 'amount',
+                  'goods_wght')
+
+
+class CreateOrderSerializer(serializers.Serializer):
     """Сериализатор для создания заказа.
     Принимает вложенный сериализатор OrderSkuSerializer.
     """
-    sku = OrderSkuSerializer(many=True)
+
+    skus = CreatOrderSkuSerializer(many=True)
 
     class Meta:
         model = Order
-        fields = ('sku',)
+        fields = ("skus",)
 
     @staticmethod
-    def create_order_sku(order, skus):
-        """Метод для создания объектов модели OrderSku (промежуточная модель).
-        """
-        for element in skus:
-            main_sku = get_object_or_404(Sku, sku=element['id'])
-            if main_sku.quantity >= element['amount']:
-                OrderSku.objects.create(sku=main_sku,
-                                        order=order,
-                                        amount=element['amount'])
-                main_sku.quantity -= element['amount']
-                main_sku.save()
-            else:
-                raise  # TODO надо выбросить исключение типа товары закончились
+    def create_order_sku(order, sku_data):
+        sku_id = sku_data["sku"]
+        amount = sku_data["amount"]
 
+        try:
+            sku = Sku.objects.select_for_update().get(sku=sku_id)
+        except Sku.DoesNotExist:
+            raise serializers.ValidationError("Invalid Sku.")
+
+        if sku.quantity < amount:
+            raise serializers.ValidationError("Insufficient quantity for Sku.")
+
+        OrderSku.objects.create(order=order, sku=sku, amount=amount)
+        sku.quantity -= amount
+        sku.save()
+
+    @transaction.atomic
     def create(self, validated_data):
-        skus = validated_data.pop('sku')
-        order = Order.objects.create(status='forming')
-        self.create_order_sku(order, skus)
+        skus_data = validated_data.pop("skus")
+
+        with transaction.atomic():
+            order = Order.objects.create(who=self.context.get('request').user,
+                                         status="forming")
+
+            for sku_data in skus_data:
+                self.create_order_sku(order, sku_data)
 
         return order
+
+    def to_representation(self, instance):
+        return ReadOrderSerializer(
+            instance,
+            context={'request': self.context.get('request')}
+        ).data
+
+
+class ReadOrderSerializer(serializers.ModelSerializer):
+    who = serializers.StringRelatedField()
+    sku = ReadOrderSkuSerializer(many=True, source='order_sku')
+    total_weight = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ('orderkey', 'who',
+                  'sku', 'status',
+                  'whs', 'box_num',
+                  'selected_cartontype', 'recommended_cartontype',
+                  'sel_calc_cube', 'pack_volume', 'total_weight',
+                  'tracking_id', 'pub_date')
+
+    @staticmethod
+    def get_total_weight(obj):
+        return sum([item.goods_wght for item in obj.sku.all()])
+
+
+class GetTable(serializers.ModelSerializer):
+
+    class Meta:
+        model = Table
+        fields = ("id",
+                  "name",
+                  "description")
+
+
+class SelectTable(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Table
+        fields = ('id',)
+
+    def create(self, validated_data):
+        table = get_object_or_404(Table, id=validated_data['id'])
+        table.user = self.context.get('request').user
+        table.save()
+        return table

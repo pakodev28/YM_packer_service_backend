@@ -1,13 +1,16 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework_simplejwt.tokens import AccessToken
-
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, IsAuthenticatedOrReadOnly
 
-from .serializers import SignUpSerializer, GetTokenSerializer, CreateOrderSerializer
+from items.models import Order
+from users.models import Table
+from .serializers import (
+    CreateOrderSerializer, GetTable, GetTokenSerializer,
+    SelectTable, SignUpSerializer, ReadOrderSerializer)
 
 User = get_user_model()
 
@@ -39,9 +42,29 @@ def get_token(request):
     return Response({'token': token}, status=status.HTTP_201_CREATED)
 
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticatedOrReadOnly])
 def create_order(request):
-    serializer = CreateOrderSerializer(data=request.data)
+    if request.method == 'POST':
+        serializer = CreateOrderSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    queryset = Order.objects.all().order_by('pub_date')
+    serializer = ReadOrderSerializer(queryset, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_table(request):
+    queryset = get_list_or_404(Table, user=None)
+    serializer = GetTable(queryset, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def select_table(request, id):
+    serializer = SelectTable(data=request.data, context={'request': request})
     serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response({'успешно': 'заказ формируется'}, status=status.HTTP_200_OK)
+    serializer.save(id=id)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
