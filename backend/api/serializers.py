@@ -32,7 +32,8 @@ class GetTokenSerializer(serializers.Serializer):
 
 
 class CreatOrderSkuSerializer(serializers.ModelSerializer):
-    """Сериализатор промежуточной модели OrderSku."""
+    """Сериализатор промежуточной модели OrderSku.
+    ДЛЯ POST запроса"""
 
     sku = serializers.UUIDField(format="hex_verbose")
 
@@ -42,6 +43,9 @@ class CreatOrderSkuSerializer(serializers.ModelSerializer):
 
 
 class ReadOrderSkuSerializer(serializers.ModelSerializer):
+    """Сериализатор промежуточной модели OrderSku.
+    ДЛЯ GET запроса."""
+
     id = serializers.ReadOnlyField(source='sku.id')
     name = serializers.ReadOnlyField(source='sku.name')
     image = Base64ImageField(source='sku.image')
@@ -56,7 +60,7 @@ class ReadOrderSkuSerializer(serializers.ModelSerializer):
 
 class CreateOrderSerializer(serializers.Serializer):
     """Сериализатор для создания заказа.
-    Принимает вложенный сериализатор OrderSkuSerializer.
+    Принимает вложенный сериализатор CreatOrderSkuSerializer.
     """
 
     skus = CreatOrderSkuSerializer(many=True)
@@ -103,6 +107,9 @@ class CreateOrderSerializer(serializers.Serializer):
 
 
 class ReadOrderSerializer(serializers.ModelSerializer):
+    """Сериализатор для чтения ордеров.
+    Принимает вложенный сериализатор ReadOrderSkuSerializer."""
+
     who = serializers.StringRelatedField()
     sku = ReadOrderSkuSerializer(many=True, source='order_sku')
     total_weight = serializers.SerializerMethodField()
