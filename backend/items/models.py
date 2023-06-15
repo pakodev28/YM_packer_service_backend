@@ -88,8 +88,7 @@ class Sku(models.Model):
     goods_wght = models.FloatField(default=0.0)  # Вес товара
     cargotypes = models.ManyToManyField("CargoType")
     image = models.ImageField(upload_to="sku_images/", blank=True, null=True)
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField("Название товара", max_length=255)
 
     class Meta:
         ordering = ["sku"]
