@@ -68,11 +68,32 @@ class Order(models.Model):
     goods_weight = models.FloatField(
         blank=True, null=True
     )  # Общий вес товаров
+    created_at = models.DateTimeField(
+        "Дата создания заказа",
+        auto_now_add=True,
+    )
 
     class Meta:
         ordering = ["status"]
         verbose_name = "Заказ"
         verbose_name_plural = "Заказы"
+
+    def save(self, *args, **kwargs):
+        # Не работает
+        total_volume = 0.0
+        for order_sku in self.order_skus.all():
+            sku_volume = order_sku.sku.volume
+            total_volume += sku_volume * order_sku.amount
+        self.pack_volume = total_volume
+        super().save(*args, **kwargs)
+
+    @property
+    def total_skus_quantity(self):
+        """Возвращеает общее количество всех видов sku в заказе"""
+        total = 0
+        for order_sku in self.order_skus.all():
+            total += order_sku.amount
+        return total
 
 
 class Sku(models.Model):
@@ -97,7 +118,13 @@ class Sku(models.Model):
 
     @property
     def volume(self):
+        """Возвращает объем sku"""
         return self.length * self.width * self.height
+
+    @property
+    def help_text(self):
+        """Возвращает подсказку для Sku на основе cargotypes"""
+        pass
 
     def __str__(self):
         return str(self.sku)
@@ -144,13 +171,19 @@ class CartonType(models.Model):
 
 
 class OrderSku(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="order_skus"
+    )
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField()  # Количество товара в заказе
 
+    class Meta:
+        verbose_name = "Товары в заказе"
+        verbose_name_plural = "Товары в заказе"
+
 
 class Table(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
     user = models.OneToOneField(
         User,
         on_delete=models.SET_NULL,
@@ -163,6 +196,8 @@ class Table(models.Model):
         return self.name
 
     class Meta:
+        verbose_name = "Стол"
+        verbose_name_plural = "Столы"
         constraints = [
             models.UniqueConstraint(
                 fields=["name", "user"], name="unique_name_user"
@@ -180,6 +215,10 @@ class Printer(models.Model):
         null=True,
     )
 
+    class Meta:
+        verbose_name = "Принтер"
+        verbose_name_plural = "Принтеры"
+
     def __str__(self):
         return str(self.barcode)
 
@@ -189,32 +228,43 @@ class Cell(models.Model):
     Ячейка.
     """
 
-    code = models.CharField(max_length=4, unique=True)
-    order = models.ForeignKey(
-        Order, on_delete=models.SET_NULL, blank=True, null=True
+    barcode = models.UUIDField(
+        default=uuid.uuid4, unique=True, primary_key=True
     )
+    name = models.CharField(max_length=4)
     table = models.ForeignKey(
         Table, on_delete=models.SET_NULL, blank=True, null=True
     )
 
     class Meta:
-        ordering = ["code"]
+        ordering = ["name"]
         verbose_name = "Ячейка"
         verbose_name_plural = "Ячейки"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "table"], name="unique_cell_table"
+            )
+        ]
 
     def __str__(self):
-        return self.code
+        return self.name
 
 
 class CellOrderSku(models.Model):
-    cell = models.ForeignKey(Cell, on_delete=models.CASCADE)
-    sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    cell = models.ForeignKey(
+        Cell, on_delete=models.CASCADE, related_name="cellorder_skus"
+    )
+    sku = models.ForeignKey(
+        Sku, on_delete=models.CASCADE, related_name="cellorder_skus"
+    )
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="cellorder_skus"
+    )
     quantity = models.PositiveIntegerField()
 
     class Meta:
-        verbose_name = "Товар ячейки заказа"
-        verbose_name_plural = "Товары ячейки заказа"
+        verbose_name = "Ячейка с товарами из заказа"
+        verbose_name_plural = "Ячейки с товарами из заказа"
 
     def save(self, *args, **kwargs):
         if not self.order.sku.filter(pk=self.sku.pk).exists():

@@ -91,7 +91,7 @@ class CellOrderSkuSerializer(serializers.ModelSerializer):
 
 
 class LoadSkuOrderToCellSerializer(serializers.Serializer):
-    code = serializers.CharField()
+    barcode = serializers.CharField()
     order = serializers.CharField()
     table = serializers.SlugRelatedField(
         slug_field="name", queryset=Table.objects.all()
@@ -99,12 +99,12 @@ class LoadSkuOrderToCellSerializer(serializers.Serializer):
     skus = CellOrderSkuSerializer(many=True)
 
     def create(self, validated_data):
-        code = validated_data.get("code")
+        barcode = validated_data.get("barcode")
         orderkey = validated_data.get("order")
         table_name = validated_data.get("table")
         skus = validated_data.get("skus")
 
-        cell = get_object_or_404(Cell, code=code)
+        cell = get_object_or_404(Cell, barcode=barcode)
         order = get_object_or_404(Order, orderkey=orderkey)
         table = get_object_or_404(Table, name=table_name)
 
@@ -122,3 +122,19 @@ class LoadSkuOrderToCellSerializer(serializers.Serializer):
             )
 
         return cell
+
+
+class CellSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cell
+        fields = ["barcode", "name"]
+
+
+class TableForOrderSerializer(serializers.Serializer):
+    userid = serializers.UUIDField()
+    table_name = serializers.CharField()
+
+
+class FindOrderSerializer(serializers.Serializer):
+    oldest_order = serializers.UUIDField(format="hex_verbose")
+    cells = CellSerializer(many=True)

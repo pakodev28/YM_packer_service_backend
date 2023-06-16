@@ -12,49 +12,65 @@ from .models import (
 )
 
 
-class OrderSkuInline(admin.TabularInline):
-    model = OrderSku
-    extra = 1
-    verbose_name_plural = "Order Skus"
-
-
-class SkuInline(admin.TabularInline):
-    model = Sku.cargotypes.through
-    extra = 1
-    verbose_name_plural = "Skus in Cargo Type"
-
-
-class CellOrderSkuInline(admin.TabularInline):
-    model = CellOrderSku
-    extra = 1
-    verbose_name_plural = "Skus in Cell"
-
-
+@admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    inlines = [OrderSkuInline]
-    exclude = ("sku",)
-    list_display = ("orderkey", "status", "whs", "box_num")
-    list_filter = ("status",)
-    search_fields = ("orderkey",)
+    list_display = ("orderkey", "status", "created_at")
+    list_filter = ("status", "created_at")
+    search_fields = ("orderkey", "status")
+    readonly_fields = ("orderkey", "created_at")
+    filter_horizontal = ("sku",)
+    ordering = ("status",)
 
 
+@admin.register(Sku)
 class SkuAdmin(admin.ModelAdmin):
-    inlines = [SkuInline]
-    list_display = ("sku", "length", "width", "height", "quantity")
-    list_filter = ("cargotypes",)
-    search_fields = ("sku",)
+    list_display = ("sku", "name", "quantity")
+    list_filter = ("quantity",)
+    search_fields = ("sku", "name")
 
 
+@admin.register(CargoType)
+class CargoTypeAdmin(admin.ModelAdmin):
+    list_display = ("cargotype", "description")
+    search_fields = ("cargotype", "description")
+
+
+@admin.register(CartonType)
+class CartonTypeAdmin(admin.ModelAdmin):
+    list_display = ("cartontype", "length", "width", "height")
+    search_fields = ("cartontype",)
+
+
+@admin.register(OrderSku)
+class OrderSkuAdmin(admin.ModelAdmin):
+    list_display = ("order", "sku", "amount")
+    list_filter = ("order", "sku")
+    search_fields = ("order__orderkey", "sku__sku")
+
+
+@admin.register(Table)
+class TableAdmin(admin.ModelAdmin):
+    list_display = ("name", "user")
+    list_filter = ("user",)
+    search_fields = ("name", "user__username")
+
+
+@admin.register(Printer)
+class PrinterAdmin(admin.ModelAdmin):
+    list_display = ("barcode", "user")
+    list_filter = ("user",)
+    search_fields = ("barcode", "user__username")
+
+
+@admin.register(Cell)
 class CellAdmin(admin.ModelAdmin):
-    inlines = [CellOrderSkuInline]
-    list_display = ("code", "order", "table")
-    search_fields = ("code",)
+    list_display = ("barcode", "name", "table")
+    list_filter = ("table",)
+    search_fields = ("barcode", "name")
 
 
-admin.site.register(Order, OrderAdmin)
-admin.site.register(Sku, SkuAdmin)
-admin.site.register(CargoType)
-admin.site.register(CartonType)
-admin.site.register(Table)
-admin.site.register(Printer)
-admin.site.register(Cell, CellAdmin)
+@admin.register(CellOrderSku)
+class CellOrderSkuAdmin(admin.ModelAdmin):
+    list_display = ("cell", "sku", "order", "quantity")
+    list_filter = ("cell", "sku", "order")
+    search_fields = ("cell__barcode", "sku__sku", "order__orderkey")

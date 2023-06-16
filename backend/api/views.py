@@ -3,16 +3,20 @@ from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import AccessToken
 
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 
+from items.models import Order, Cell, Table, CellOrderSku
 from .serializers import (
     SignUpSerializer,
     GetTokenSerializer,
     CreateOrderSerializer,
     LoadSkuOrderToCellSerializer,
+    CellSerializer,
+    TableForOrderSerializer,
+    FindOrderSerializer,
 )
 
 User = get_user_model()
@@ -67,3 +71,42 @@ class LoadSkuOrderToCellView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FindOrderAPIView(APIView):
+    def get(self, request):
+        serializer = TableForOrderSerializer(data=request.GET)
+        serializer.is_valid(raise_exception=True)
+        userid = serializer.validated_data["userid"]
+        table_name = serializer.validated_data["table_name"]
+
+        table = get_object_or_404(Table, name=table_name)
+        oldest_order_id = (
+            Order.objects.filter(
+                cellorder_skus__cell__table=table, status="forming"
+            )
+            .order_by("cellorder_skus__order__created_at")
+            .values_list("pk", flat=True)
+            .first()
+        )
+
+        if not oldest_order_id:
+            return Response(
+                {"error": "No orders found for the table."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        oldest_order = Order.objects.get(pk=oldest_order_id)
+        oldest_order.who_id = userid
+        oldest_order.status = "collecting"
+        oldest_order.save()
+
+        cells = Cell.objects.filter(
+            cellorder_skus__order=oldest_order_id
+        ).distinct()
+        cell_serializer = CellSerializer(cells, many=True)
+
+        data = {"oldest_order": oldest_order_id, "cells": cell_serializer.data}
+
+        find_order_serializer = FindOrderSerializer(data)
+
+        return Response(find_order_serializer.data)
