@@ -91,7 +91,7 @@ class CreateOrderSerializer(serializers.Serializer):
 
         data_for_DS = {"orderId": str(order.orderkey), "items": list_of_sku}
         check_DS = requests.get("http://localhost:8000/health")
-        if check_DS.status_code == 200:
+        if check_DS.status_code == 200:  # Проверка на доступность ДС
             response = requests.post("http://localhost:8000/pack", json=data_for_DS)
             return response.json()
         else:
@@ -163,9 +163,8 @@ class GetTable(serializers.ModelSerializer):
 
     class Meta:
         model = Table
-        fields = ("id",
-                  "name",
-                  "description")
+        fields = ("id", "name",
+                  "description", 'available')
 
 
 class SelectTable(serializers.ModelSerializer):

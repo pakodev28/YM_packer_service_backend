@@ -7,5 +7,5 @@ urlpatterns = [
     path('login/', get_token),
     path('create-order/', create_order),
     path('tables/', get_table),
-    path('user/select-table/<int:id>/', select_table)
+    path('select-table/<int:id>/', select_table)
 ]

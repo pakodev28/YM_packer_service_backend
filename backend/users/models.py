@@ -29,8 +29,9 @@ class Table(models.Model):
         related_name="table",
         blank=True,
         null=True,
-        default=None
+        default=None,
     )
+    available = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["name"]
@@ -41,9 +42,17 @@ class Table(models.Model):
         return self.name
 
 
-# class Printer(models.Model):
-#     barcode = models.UUIDField(default=uuid.uuid4, unique=True)
-#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="printer")
-#
-#     def __str__(self):
-#         return str(self.barcode)
+class Printer(models.Model):
+    barcode = models.UUIDField(default=uuid.uuid4, unique=True)
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='принтер',
+        related_name="printer",
+        blank=True,
+        null=True,
+        default=None,
+    )
+
+    def __str__(self):
+        return self.barcode
