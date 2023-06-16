@@ -71,6 +71,31 @@ class CreateOrderSerializer(serializers.Serializer):
         fields = ("skus",)
 
     @staticmethod
+    def response_from_DS(order, skus_data):
+        """Метод для взаимодействия с DS.
+        Вызывается в методе create."""
+
+        list_of_sku = []
+        for item in skus_data:
+            product = Sku.objects.get(sku=item["sku"])
+            lol = {"sku": item['sku'],
+                   "amount": item['amount'],
+                   "length": product.length,
+                   "width": product.width,
+                   'height': product.height,
+                   "goods_wght": product.goods_wght,
+                   "cargotypes": product.cargotypes.values_list("cargotype", flat=True)}
+            list_of_sku.append(lol)
+            data_for_DS = {"orderkey": order.orderkey, "skus": list_of_sku}
+            check_DS = requests.get("http://localhost:8000/health")  # Проверка работы ДС
+            if check_DS.status_code == "ok":
+                response = requests.get("http://localhost:8000/pack", json=data_for_DS)
+                result = response.json()
+                return 1
+            else:
+                return 1
+
+    @staticmethod
     def create_order_sku(order, sku_data):
         sku_id = sku_data["sku"]
         amount = sku_data["amount"]
@@ -90,29 +115,12 @@ class CreateOrderSerializer(serializers.Serializer):
     @transaction.atomic
     def create(self, validated_data):
         skus_data = validated_data.pop("skus")
+        order = Order.objects.create(who=self.context.get('request').user,
+                                     status="forming")
+        for sku_data in skus_data:
+            self.create_order_sku(order, sku_data)
 
-        with transaction.atomic():  # TODO обсудить удаление данного менеджера, т.к. уже есть декоратор
-            order = Order.objects.create(who=self.context.get('request').user,
-                                         status="forming")
-
-            for sku_data in skus_data:
-                self.create_order_sku(order, sku_data)
-
-        # Начинаем тянуть данные с ДС
-        list_of_sku = []
-        for item in skus_data:
-            product = Sku.objects.get(sku=item["sku"])
-            lol = {"sku": item['sku'], "amount": item['amount'], "length": product.length, "width": product.width,
-                   'height': product.height, "goods_wght": product.goods_wght,
-                   "cargotypes": product.cargotypes.values_list("cargotype", flat=True)}
-            list_of_sku.append(lol)
-        data_for_DS = {"orderkey": order.orderkey, "skus": list_of_sku}
-        print(data_for_DS)
-        check_DS = requests.get("http://localhost:8000/health")  # Проверка работы ДС
-        if check_DS.status_code == "ok":
-            response = requests.get("http://localhost:8000/pack", json=data_for_DS)
-            result = response.json()
-
+        result = self.response_from_DS(order, skus_data)  # Вытягиваем данные от ДС
         return order
 
     def to_representation(self, instance):
