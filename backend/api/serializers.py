@@ -91,7 +91,7 @@ class CreateOrderSerializer(serializers.Serializer):
     def create(self, validated_data):
         skus_data = validated_data.pop("skus")
 
-        with transaction.atomic():
+        with transaction.atomic():  # TODO обсудить удаление данного менеджера, т.к. уже есть декоратор
             order = Order.objects.create(who=self.context.get('request').user,
                                          status="forming")
 
