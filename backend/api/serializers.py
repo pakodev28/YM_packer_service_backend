@@ -109,9 +109,10 @@ class CreateOrderSerializer(serializers.Serializer):
         data_for_DS = {"orderkey": order.orderkey, "skus": list_of_sku}
         print(data_for_DS)
         check_DS = requests.get("http://localhost:8000/health")  # Проверка работы ДС
-        if check_DS.status_code == 200:
+        if check_DS.status_code == "ok":
             response = requests.get("http://localhost:8000/pack", json=data_for_DS)
             result = response.json()
+
         return order
 
     def to_representation(self, instance):
