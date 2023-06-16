@@ -92,9 +92,9 @@ class CreateOrderSerializer(serializers.Serializer):
         if check_DS.status_code == "ok":
             response = requests.get("http://localhost:8000/pack", json=data_for_DS)
             result = response.json()
-            return 1
+            return 1  # Пока стоит заглушка
         else:
-            return 1
+            return 1  # # Пока стоит заглушка
 
     @staticmethod
     def create_order_sku(order, sku_data):
