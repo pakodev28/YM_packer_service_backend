@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .views import CreateOrderAPIView, LoadSkuOrderToCellView, FindOrderAPIView
+from .views import (
+    CreateOrderAPIView,
+    FindOrderAPIView,
+    LoadSkuOrderToCellView,
+    OrderDetailsAPIView,
+)
 
 urlpatterns = [
     path(
@@ -14,4 +19,7 @@ urlpatterns = [
         name="upload-to-cell",
     ),
     path("find-order/", FindOrderAPIView.as_view(), name="find-order"),
+    path(
+        "order-details/", OrderDetailsAPIView.as_view(), name="order-details"
+    ),
 ]

@@ -1,9 +1,10 @@
 import uuid
-from django.db import models
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import models
 
-from .cargotypes_constants import PACKET, BUBBLE_WRAP, STRETCH
+from .cargotypes_constants import BUBBLE_WRAP, PACKET, STRETCH
 
 User = get_user_model()
 

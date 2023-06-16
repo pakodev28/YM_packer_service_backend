@@ -1,22 +1,23 @@
+from ast import Or
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework_simplejwt.tokens import AccessToken
-
-from rest_framework.response import Response
-from rest_framework import status, generics
+from items.models import Cell, Order, Table
+from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import AccessToken
 
-from items.models import Order, Cell, Table, CellOrderSku
 from .serializers import (
-    SignUpSerializer,
-    GetTokenSerializer,
-    CreateOrderSerializer,
-    LoadSkuOrderToCellSerializer,
     CellSerializer,
-    TableForOrderSerializer,
+    CreateOrderSerializer,
     FindOrderSerializer,
+    GetTokenSerializer,
+    LoadSkuOrderToCellSerializer,
+    SignUpSerializer,
+    TableForOrderSerializer,
+    GetOrderSerializer,
 )
 
 User = get_user_model()
@@ -110,3 +111,13 @@ class FindOrderAPIView(APIView):
         find_order_serializer = FindOrderSerializer(data)
 
         return Response(find_order_serializer.data)
+
+
+class OrderDetailsAPIView(APIView):
+    def get(self, request):
+        orderkey = request.GET.get("orderkey")
+        order = get_object_or_404(Order, orderkey=orderkey)
+
+        serializer = GetOrderSerializer(order)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -1,10 +1,10 @@
-from django.db import transaction
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import get_object_or_404
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
 
-
-from items.models import Order, OrderSku, Sku, Cell, CellOrderSku, Table
+from items.models import Cell, CellOrderSku, Order, OrderSku, Sku, Table
 
 User = get_user_model()
 
@@ -31,7 +31,7 @@ class GetTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.UUIDField(required=True, format="hex")
 
 
-class OrderSkuSerializer(serializers.ModelSerializer):
+class CreateOrderSkuSerializer(serializers.ModelSerializer):
     """Сериализатор промежуточной модели OrderSku."""
 
     sku = serializers.UUIDField(format="hex_verbose")
@@ -46,7 +46,7 @@ class CreateOrderSerializer(serializers.Serializer):
     Принимает вложенный сериализатор OrderSkuSerializer.
     """
 
-    skus = OrderSkuSerializer(many=True)
+    skus = CreateOrderSkuSerializer(many=True)
 
     class Meta:
         model = Order
@@ -138,3 +138,42 @@ class TableForOrderSerializer(serializers.Serializer):
 class FindOrderSerializer(serializers.Serializer):
     oldest_order = serializers.UUIDField(format="hex_verbose")
     cells = CellSerializer(many=True)
+
+
+class SkuSerializer(serializers.ModelSerializer):
+    help_text = serializers.SerializerMethodField()
+    amount = serializers.SerializerMethodField()
+    image = Base64ImageField(read_only=True)
+
+    class Meta:
+        model = Sku
+        fields = ["sku", "name", "image", "amount", "help_text"]
+
+    def get_help_text(self, sku):
+        return sku.help_text
+
+    def get_amount(self, sku):
+        order = self.context["order"]
+        order_sku = OrderSku.objects.filter(order=order, sku=sku).first()
+        if order_sku:
+            return order_sku.amount
+        return None
+
+
+class GetOrderSerializer(serializers.ModelSerializer):
+    skus = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            "orderkey",
+            "recommended_cartontype",
+            "total_skus_quantity",
+            "skus",
+        ]
+
+    def get_skus(self, order):
+        sku_serializer = SkuSerializer(
+            order.sku.all(), many=True, context={"order": order}
+        )
+        return sku_serializer.data

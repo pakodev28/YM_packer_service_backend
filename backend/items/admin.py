@@ -1,14 +1,15 @@
 from django.contrib import admin
+
 from .models import (
-    Order,
-    Sku,
     CargoType,
     CartonType,
-    OrderSku,
-    Table,
-    Printer,
     Cell,
     CellOrderSku,
+    Order,
+    OrderSku,
+    Printer,
+    Sku,
+    Table,
 )
 
 
