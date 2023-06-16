@@ -78,22 +78,23 @@ class CreateOrderSerializer(serializers.Serializer):
         list_of_sku = []
         for item in skus_data:
             product = Sku.objects.get(sku=item["sku"])
-            lol = {"sku": item['sku'],
-                   "amount": item['amount'],
-                   "length": product.length,
-                   "width": product.width,
-                   'height': product.height,
-                   "goods_wght": product.goods_wght,
-                   "cargotypes": product.cargotypes.values_list("cargotype", flat=True)}
-            list_of_sku.append(lol)
-            data_for_DS = {"orderkey": order.orderkey, "skus": list_of_sku}
-            check_DS = requests.get("http://localhost:8000/health")  # Проверка работы ДС
-            if check_DS.status_code == "ok":
-                response = requests.get("http://localhost:8000/pack", json=data_for_DS)
-                result = response.json()
-                return 1
-            else:
-                return 1
+            dict_of_sku = {"sku": item['sku'],
+                           "amount": item['amount'],
+                           "length": product.length,
+                           "width": product.width,
+                           'height': product.height,
+                           "goods_wght": product.goods_wght,
+                           "cargotypes": product.cargotypes.values_list("cargotype", flat=True)}
+            list_of_sku.append(dict_of_sku)
+
+        data_for_DS = {"orderkey": order.orderkey, "skus": list_of_sku}
+        check_DS = requests.get("http://localhost:8000/health")  # Проверка работы ДС
+        if check_DS.status_code == "ok":
+            response = requests.get("http://localhost:8000/pack", json=data_for_DS)
+            result = response.json()
+            return 1
+        else:
+            return 1
 
     @staticmethod
     def create_order_sku(order, sku_data):
@@ -120,7 +121,7 @@ class CreateOrderSerializer(serializers.Serializer):
         for sku_data in skus_data:
             self.create_order_sku(order, sku_data)
 
-        result = self.response_from_DS(order, skus_data)  # Вытягиваем данные от ДС
+        result_from_DS = self.response_from_DS(order, skus_data)  # Вытягиваем данные от ДС
         return order
 
     def to_representation(self, instance):
