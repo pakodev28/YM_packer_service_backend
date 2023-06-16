@@ -3,6 +3,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
+from .cargotypes_constants import PACKET, BUBBLE_WRAP, STRETCH
+
 User = get_user_model()
 
 
@@ -124,7 +126,21 @@ class Sku(models.Model):
     @property
     def help_text(self):
         """Возвращает подсказку для Sku на основе cargotypes"""
-        pass
+        cargotypes = self.cargotypes.values_list("cargotype", flat=True)
+
+        cargotype_help_text = []
+
+        if cargotypes:
+            if any(cargotype in cargotypes for cargotype in PACKET):
+                cargotype_help_text.append("packet")
+
+            if any(cargotype in cargotypes for cargotype in BUBBLE_WRAP):
+                cargotype_help_text.append("bubble_wrap")
+
+            if any(cargotype in cargotypes for cargotype in STRETCH):
+                cargotype_help_text.append("stretch")
+
+        return cargotype_help_text
 
     def __str__(self):
         return str(self.sku)
