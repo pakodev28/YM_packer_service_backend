@@ -20,7 +20,11 @@ class Order(models.Model):
         ("collected", "Collected"),
     )
     orderkey = models.UUIDField(
-        default=uuid.uuid4, editable=False, unique=True, primary_key=True
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        primary_key=True,
+        verbose_name="ID заказа",
     )  # id заказа
     who = models.ForeignKey(
         User,
@@ -28,8 +32,9 @@ class Order(models.Model):
         related_name="orders",
         blank=True,
         null=True,
+        verbose_name="Пользователь",
     )
-    sku = models.ManyToManyField(
+    skus = models.ManyToManyField(
         "Sku",
         through="OrderSku",
         verbose_name="Товары",
@@ -37,43 +42,49 @@ class Order(models.Model):
         related_name="orders",
     )
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES
-    )  # Статус заказа
+        max_length=20, choices=STATUS_CHOICES, verbose_name="Статус заказа"
+    )
     whs = models.PositiveSmallIntegerField(
-        default=0
-    )  # код сортировочного центра
-    box_num = models.PositiveSmallIntegerField(
-        blank=True, null=True
-    )  # количество коробок
-    selected_cartontype = models.ForeignKey(
+        default=0, verbose_name="Код сортировочного центра"
+    )
+    total_packages = models.PositiveSmallIntegerField(
+        blank=True, null=True, verbose_name="Количество упаковок в заказе"
+    )
+    selected_cartontypes = models.ManyToManyField(
         "CartonType",
-        null=True,
         blank=True,
-        on_delete=models.SET_NULL,
         related_name="selected_orders",
-    )  # код упаковки, которая была выбрана пользователем
+        verbose_name="Выбранные типы упаковки",
+    )
     recommended_cartontype = models.ForeignKey(
         "CartonType",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name="recommended_orders",
-    )  # код упаковки, рекомендованной алгоритмом
+        verbose_name="Рекомендуемый тип упаковки",
+    )
     sel_calc_cube = models.FloatField(
-        null=True, blank=True
-    )  # объём выбранной упаковки
+        null=True, blank=True, verbose_name="Объем выбранной упаковки"
+    )
     pack_volume = models.FloatField(
-        null=True, blank=True
-    )  # рассчитанный объём упакованных товаров
+        null=True,
+        blank=True,
+        verbose_name="Рассчитанный объем упакованных товаров",
+    )
     tracking_id = models.UUIDField(
-        editable=False, unique=True, null=True, blank=True
+        editable=False,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="ID доставки",
     )
     goods_weight = models.FloatField(
-        blank=True, null=True
-    )  # Общий вес товаров
+        blank=True, null=True, verbose_name="Общий вес товаров"
+    )
     created_at = models.DateTimeField(
-        "Дата создания заказа",
         auto_now_add=True,
+        verbose_name="Дата создания",
     )
 
     class Meta:
@@ -105,14 +116,21 @@ class Sku(models.Model):
     """
 
     sku = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
-    length = models.FloatField()
-    width = models.FloatField()
-    height = models.FloatField()
-    quantity = models.PositiveIntegerField(default=0)  # Количество на складе
-    goods_wght = models.FloatField(default=0.0)  # Вес товара
-    cargotypes = models.ManyToManyField("CargoType")
-    image = models.ImageField(upload_to="sku_images/", blank=True, null=True)
-    name = models.CharField("Название товара", max_length=255)
+    length = models.FloatField(verbose_name="Длина")
+    width = models.FloatField(verbose_name="Ширина")
+    height = models.FloatField(verbose_name="Высота")
+    quantity = models.PositiveIntegerField(
+        default=0, verbose_name="Количество на складе"
+    )
+    goods_wght = models.FloatField(default=0.0, verbose_name="Вес товара")
+    cargotypes = models.ManyToManyField("CargoType", verbose_name="Карготипы")
+    image = models.ImageField(
+        upload_to="sku_images/",
+        blank=True,
+        null=True,
+        verbose_name="Изображение",
+    )
+    name = models.CharField(max_length=255, verbose_name="Название товара")
 
     class Meta:
         ordering = ["sku"]
@@ -152,8 +170,10 @@ class CargoType(models.Model):
     Описание карготипов.
     """
 
-    cargotype = models.PositiveIntegerField(unique=True)
-    description = models.CharField(max_length=255)
+    cargotype = models.PositiveIntegerField(
+        unique=True, verbose_name="Карготип"
+    )
+    description = models.CharField(max_length=255, verbose_name="Описание")
 
     class Meta:
         ordering = ["cargotype"]
@@ -167,12 +187,18 @@ class CargoType(models.Model):
 class CartonType(models.Model):
     """Характеристики упаковок."""
 
+    barcode = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        primary_key=True,
+        verbose_name="Штрихкод",
+    )
     cartontype = models.CharField(
-        max_length=255
+        max_length=255, verbose_name="Тип упаковки"
     )  # идентификатор (код) упаковки
-    length = models.FloatField()
-    width = models.FloatField()
-    height = models.FloatField()
+    length = models.FloatField(verbose_name="Длина")
+    width = models.FloatField(verbose_name="Ширина")
+    height = models.FloatField(verbose_name="Высота")
 
     class Meta:
         ordering = ["cartontype"]
@@ -189,10 +215,22 @@ class CartonType(models.Model):
 
 class OrderSku(models.Model):
     order = models.ForeignKey(
-        Order, on_delete=models.CASCADE, related_name="order_skus"
+        Order,
+        on_delete=models.CASCADE,
+        related_name="order_skus",
+        verbose_name="Заказ",
     )
-    sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
-    amount = models.PositiveIntegerField()  # Количество товара в заказе
+    sku = models.ForeignKey(
+        Sku, on_delete=models.CASCADE, verbose_name="Товар"
+    )
+    amount = models.PositiveIntegerField(
+        verbose_name="Количество товара в заказе"
+    )  # Количество товара в заказе
+    packaging_number = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Номер упаковки в которой находится товар",
+    )
 
     class Meta:
         verbose_name = "Товары в заказе"

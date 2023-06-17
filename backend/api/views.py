@@ -1,4 +1,3 @@
-from ast import Or
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from items.models import Cell, Order, Table
@@ -9,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
+
 from .serializers import (
     CellSerializer,
     CreateOrderSerializer,
@@ -18,6 +18,8 @@ from .serializers import (
     SignUpSerializer,
     TableForOrderSerializer,
     GetOrderSerializer,
+    OrderAddNewDataSerializer,
+    StatusOrderSerializer,
 )
 
 User = get_user_model()
@@ -121,3 +123,62 @@ class OrderDetailsAPIView(APIView):
         serializer = GetOrderSerializer(order)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class OrderAddNewDataAPIView(APIView):
+    """
+    API-представление для обогащения заказа новыми данными.
+    """
+    def patch(self, request):
+        serializer = OrderAddNewDataSerializer(data=request.data)
+        if serializer.is_valid():
+            orderkey = serializer.validated_data["orderkey"]
+            try:
+                order = Order.objects.get(orderkey=orderkey)
+                serializer.update(order, serializer.validated_data)
+
+                return Response(
+                    {"message": "Order has been successfully updated"},
+                    status=status.HTTP_200_OK,
+                )
+            except Order.DoesNotExist:
+                return Response(
+                    {"error": "Order not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class OrderStatusUpdateAPIView(APIView):
+    """
+    API-представление для обновления статуса заказа.
+    """
+    def patch(self, request):
+        serializer = StatusOrderSerializer(data=request.data)
+        if serializer.is_valid():
+            orderkey = serializer.validated_data["orderkey"]
+            order_status = serializer.validated_data["status"]
+
+            try:
+                order = Order.objects.get(orderkey=orderkey)
+                order.status = order_status
+                order.save()
+
+                return Response(
+                    {
+                        "message": "Order status has been successfully updated to collected"
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            except Order.DoesNotExist:
+                return Response(
+                    {"error": "Order not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )

@@ -15,12 +15,25 @@ from .models import (
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("orderkey", "status", "created_at")
+    list_display = (
+        "orderkey",
+        "status",
+        "created_at",
+        "display_selected_cartontypes",
+    )
     list_filter = ("status", "created_at")
     search_fields = ("orderkey", "status")
-    readonly_fields = ("orderkey", "created_at")
-    filter_horizontal = ("sku",)
+    readonly_fields = (
+        "orderkey",
+        "created_at",
+        "display_selected_cartontypes",
+    )
     ordering = ("status",)
+
+    def display_selected_cartontypes(self, obj):
+        return ", ".join(str(ct) for ct in obj.selected_cartontypes.all())
+
+    display_selected_cartontypes.short_description = "Selected Carton Types"
 
 
 @admin.register(Sku)

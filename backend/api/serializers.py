@@ -4,7 +4,15 @@ from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from items.models import Cell, CellOrderSku, Order, OrderSku, Sku, Table
+from items.models import (
+    Cell,
+    CellOrderSku,
+    Order,
+    OrderSku,
+    Sku,
+    Table,
+    CartonType,
+)
 
 User = get_user_model()
 
@@ -91,15 +99,15 @@ class CellOrderSkuSerializer(serializers.ModelSerializer):
 
 
 class LoadSkuOrderToCellSerializer(serializers.Serializer):
-    barcode = serializers.CharField()
-    order = serializers.CharField()
+    cell_barcode = serializers.UUIDField(format="hex_verbose")
+    order = serializers.UUIDField(format="hex_verbose")
     table = serializers.SlugRelatedField(
         slug_field="name", queryset=Table.objects.all()
     )
     skus = CellOrderSkuSerializer(many=True)
 
     def create(self, validated_data):
-        barcode = validated_data.get("barcode")
+        barcode = validated_data.get("cell_barcode")
         orderkey = validated_data.get("order")
         table_name = validated_data.get("table")
         skus = validated_data.get("skus")
@@ -177,3 +185,48 @@ class GetOrderSerializer(serializers.ModelSerializer):
             order.sku.all(), many=True, context={"order": order}
         )
         return sku_serializer.data
+
+
+class OrderSkuSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderSku
+        fields = ["sku", "packaging_number"]
+
+
+class OrderAddNewDataSerializer(serializers.Serializer):
+    orderkey = serializers.UUIDField(format="hex_verbose")
+    selected_cartontypes = serializers.ListField(child=serializers.UUIDField(format="hex_verbose"))
+    total_packages = serializers.IntegerField()
+    skus = OrderSkuSerializer(many=True)
+
+    def update(self, instance, validated_data):
+        orderkey = validated_data.get("orderkey")
+        selected_cartontypes = validated_data.get("selected_cartontypes")
+        total_packages = validated_data.get("total_packages")
+        skus_data = validated_data.get("skus")
+
+        instance.selected_cartontypes.set(selected_cartontypes)
+
+        instance.total_packages = total_packages
+        instance.save()
+
+        for sku_data in skus_data:
+            sku = sku_data.get("sku")
+            packaging_number = sku_data.get("packaging_number")
+            OrderSku.objects.filter(order=orderkey, sku=sku).update(
+                packaging_number=packaging_number
+            )
+
+        return instance
+
+
+class StatusOrderSerializer(serializers.ModelSerializer):
+    orderkey = serializers.UUIDField(format="hex_verbose")
+    class Meta:
+        model = Order
+        fields = ("orderkey", "status")
+
+    def validate_status(self, value):
+        if value != "collected":
+            raise serializers.ValidationError('Status must be "collected"')
+        return value
