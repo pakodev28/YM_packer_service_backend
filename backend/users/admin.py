@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 
-from .models import Table
+from .models import Table, Printer
 
 User = get_user_model()
 
@@ -12,3 +12,4 @@ class UserAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Table)
+admin.site.register(Printer)

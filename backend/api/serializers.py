@@ -8,7 +8,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from items.models import CartonType, Order, OrderSku, Sku
-from users.models import Table
+from users.models import Table, Printer
 
 User = get_user_model()
 
@@ -159,23 +159,32 @@ class ReadOrderSerializer(serializers.ModelSerializer):
         return sum([item.goods_wght for item in obj.sku.all()])
 
 
-class GetTable(serializers.ModelSerializer):
+class GetTableSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Table
-        fields = ("id", "name",
-                  "description", 'available')
+        fields = ("id", "name", 'available')
 
 
-class SelectTable(serializers.ModelSerializer):
+class SelectTableSerializer(serializers.Serializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
 
-    class Meta:
-        model = Table
-        fields = ('id',)
+    def create(self, validated_data):
+        user = self.context.get('request').user
+        table = get_object_or_404(Table, id=validated_data['id'])
+        user.table = table
+        user.save()
+        print(user.table)
+        return table
+
+
+class SelectPrinterSerializer(serializers.Serializer):
+    barcode = serializers.UUIDField(required=True, format='hex_verbose')
 
     def create(self, validated_data):
-        table = get_object_or_404(Table, id=validated_data['id'])
-        table.user = self.context.get('request').user
-        table.save()
-        return table
+        user = self.context.get('request').user
+        printer = get_object_or_404(Printer, barcode=validated_data['barcode'])
+        user.printer = printer
+        user.save()
+        print(user.printer)
+        return printer

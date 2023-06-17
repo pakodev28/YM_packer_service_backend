@@ -9,6 +9,20 @@ class User(AbstractUser):
     first_name = models.CharField("Имя", help_text="Введите имя", max_length=150)
     last_name = models.CharField("Фамилия", help_text="Ведите фамилию", max_length=150)
     created_date = models.DateTimeField("Дата регистрации", auto_now_add=True)
+    table = models.OneToOneField(
+            'Table',
+            on_delete=models.SET_NULL,
+            verbose_name='стол',
+            related_name='user',
+            null=True,
+            blank=True)
+    printer = models.OneToOneField(
+            'Printer',
+            on_delete=models.SET_NULL,
+            verbose_name='принтер',
+            related_name='user',
+            null=True,
+            blank=True)
 
     class Meta:
         ordering = ("id",)
@@ -20,17 +34,9 @@ class User(AbstractUser):
 
 
 class Table(models.Model):
+
     name = models.CharField("Название", max_length=32, unique=True)
     description = models.TextField("Описание", max_length=128)
-    user = models.OneToOneField(
-        User,
-        on_delete=models.SET_NULL,
-        verbose_name="Пользователь",
-        related_name="table",
-        blank=True,
-        null=True,
-        default=None,
-    )
     available = models.BooleanField(default=True)
 
     class Meta:
@@ -44,15 +50,7 @@ class Table(models.Model):
 
 class Printer(models.Model):
     barcode = models.UUIDField(default=uuid.uuid4, unique=True)
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='принтер',
-        related_name="printer",
-        blank=True,
-        null=True,
-        default=None,
-    )
 
     def __str__(self):
-        return self.barcode
+        return str(self.barcode)
+
