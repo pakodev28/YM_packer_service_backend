@@ -1,0 +1,14 @@
+version: "3.3"
+services:
+  DS:
+    image: timurs55/yapack:0.1
+    ports:
+      - "8000:8000"
+
+  backend:
+    image: dtankhaev/image_of_frankenstein:v100.0.0
+    restart: always
+    ports:
+      - "8080:8000"
+    depends_on:
+      - DS
