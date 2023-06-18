@@ -1,13 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from items.models import Cell, Order, Table
-from rest_framework import generics, status
+from items.models import Cell, Order
+from users.models import Table
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
-
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from .serializers import (
     CellSerializer,
@@ -20,6 +20,9 @@ from .serializers import (
     GetOrderSerializer,
     OrderAddNewDataSerializer,
     StatusOrderSerializer,
+    GetTableSerializer,
+    SelectTableSerializer,
+    SelectPrinterSerializer,
 )
 
 User = get_user_model()
@@ -129,6 +132,7 @@ class OrderAddNewDataAPIView(APIView):
     """
     API-представление для обогащения заказа новыми данными.
     """
+
     def patch(self, request):
         serializer = OrderAddNewDataSerializer(data=request.data)
         if serializer.is_valid():
@@ -156,6 +160,7 @@ class OrderStatusUpdateAPIView(APIView):
     """
     API-представление для обновления статуса заказа.
     """
+
     def patch(self, request):
         serializer = StatusOrderSerializer(data=request.data)
         if serializer.is_valid():
@@ -182,3 +187,30 @@ class OrderStatusUpdateAPIView(APIView):
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
+
+
+@api_view(["GET"])
+def get_tables(request):
+    queryset = Table.objects.all()
+    serializer = GetTableSerializer(queryset, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def select_table(request, id):
+    serializer = SelectTableSerializer(
+        data=request.data, context={"request": request}
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save(id=id)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+def select_printer(request):
+    serializer = SelectPrinterSerializer(
+        data=request.data, context={"request": request}
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)

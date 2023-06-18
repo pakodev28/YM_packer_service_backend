@@ -7,6 +7,11 @@ from .views import (
     OrderDetailsAPIView,
     OrderAddNewDataAPIView,
     OrderStatusUpdateAPIView,
+    get_tables,
+    get_token,
+    sign_up,
+    select_table,
+    select_printer,
 )
 
 urlpatterns = [
@@ -34,4 +39,12 @@ urlpatterns = [
         OrderStatusUpdateAPIView.as_view(),
         name="order-collected",
     ),
+]
+
+urlpatterns += [
+    path("sign-up/", sign_up),
+    path("login/", get_token),
+    path("tables/", get_tables),
+    path("select-table/<int:id>/", select_table),
+    path("select-printer/", select_printer),
 ]

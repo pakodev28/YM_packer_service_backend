@@ -7,9 +7,7 @@ from .models import (
     CellOrderSku,
     Order,
     OrderSku,
-    Printer,
     Sku,
-    Table,
 )
 
 
@@ -60,20 +58,6 @@ class OrderSkuAdmin(admin.ModelAdmin):
     list_display = ("order", "sku", "amount")
     list_filter = ("order", "sku")
     search_fields = ("order__orderkey", "sku__sku")
-
-
-@admin.register(Table)
-class TableAdmin(admin.ModelAdmin):
-    list_display = ("name", "user")
-    list_filter = ("user",)
-    search_fields = ("name", "user__username")
-
-
-@admin.register(Printer)
-class PrinterAdmin(admin.ModelAdmin):
-    list_display = ("barcode", "user")
-    list_filter = ("user",)
-    search_fields = ("barcode", "user__username")
 
 
 @admin.register(Cell)

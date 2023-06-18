@@ -1,9 +1,11 @@
+import requests
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
+from users.models import Table, Printer
 from items.models import (
     Cell,
     CellOrderSku,
@@ -61,6 +63,37 @@ class CreateOrderSerializer(serializers.Serializer):
         fields = ("skus",)
 
     @staticmethod
+    def request_to_DS(order, skus_data):
+        """Метод для взаимодействия с DS.
+        Вызывается в методе create."""
+
+        list_of_sku = []
+        for item in skus_data:
+            product = Sku.objects.get(sku=item["sku"])
+            dict_of_sku = {
+                "sku": str(item["sku"]),
+                "count": item["amount"],
+                "size1": str(product.length),
+                "size2": str(product.width),
+                "size3": str(product.height),
+                "weight": str(product.goods_wght),
+                "type": list(
+                    product.cargotypes.values_list("cargotype", flat=True)
+                ),
+            }
+            list_of_sku.append(dict_of_sku)
+
+        data_for_DS = {"orderId": str(order.orderkey), "items": list_of_sku}
+        check_DS = requests.get("http://localhost:8000/health")
+        if check_DS.status_code == 200:  # Проверка на доступность ДС
+            response = requests.post(
+                "http://localhost:8000/pack", json=data_for_DS
+            )
+            return response.json()
+        else:
+            return 1  # TODO нужно добавить исключение
+
+    @staticmethod
     def create_order_sku(order, sku_data):
         sku_id = sku_data["sku"]
         amount = sku_data["amount"]
@@ -81,11 +114,19 @@ class CreateOrderSerializer(serializers.Serializer):
     def create(self, validated_data):
         skus_data = validated_data.pop("skus")
 
-        with transaction.atomic():
-            order = Order.objects.create(status="forming")
+        order = Order.objects.create(status="forming")
 
-            for sku_data in skus_data:
-                self.create_order_sku(order, sku_data)
+        for sku_data in skus_data:
+            self.create_order_sku(order, sku_data)
+
+        response_from_DS = self.request_to_DS(
+            order, skus_data
+        )  # Вытягиваем данные от ДС (коробку)
+        package = response_from_DS.get("package")
+        order.recommended_cartontype = get_object_or_404(
+            CartonType, cartontype=package
+        )
+        order.save()
 
         return order
 
@@ -139,7 +180,7 @@ class CellSerializer(serializers.ModelSerializer):
 
 
 class TableForOrderSerializer(serializers.Serializer):
-    userid = serializers.UUIDField()
+    userid = serializers.UUIDField(format="hex_verbose")
     table_name = serializers.CharField()
 
 
@@ -182,7 +223,7 @@ class GetOrderSerializer(serializers.ModelSerializer):
 
     def get_skus(self, order):
         sku_serializer = SkuSerializer(
-            order.sku.all(), many=True, context={"order": order}
+            order.skus.all(), many=True, context={"order": order}
         )
         return sku_serializer.data
 
@@ -195,7 +236,9 @@ class OrderSkuSerializer(serializers.ModelSerializer):
 
 class OrderAddNewDataSerializer(serializers.Serializer):
     orderkey = serializers.UUIDField(format="hex_verbose")
-    selected_cartontypes = serializers.ListField(child=serializers.UUIDField(format="hex_verbose"))
+    selected_cartontypes = serializers.ListField(
+        child=serializers.UUIDField(format="hex_verbose")
+    )
     total_packages = serializers.IntegerField()
     skus = OrderSkuSerializer(many=True)
 
@@ -222,6 +265,7 @@ class OrderAddNewDataSerializer(serializers.Serializer):
 
 class StatusOrderSerializer(serializers.ModelSerializer):
     orderkey = serializers.UUIDField(format="hex_verbose")
+
     class Meta:
         model = Order
         fields = ("orderkey", "status")
@@ -230,3 +274,37 @@ class StatusOrderSerializer(serializers.ModelSerializer):
         if value != "collected":
             raise serializers.ValidationError('Status must be "collected"')
         return value
+
+
+class GetTableSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Table
+        fields = ("id", "name", "available")
+
+
+class SelectTableSerializer(serializers.Serializer):
+    id = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    def create(self, validated_data):
+        # user = self.context.get("request").user
+        userid = self.context.get("request").GET.get("userid")
+        user = get_object_or_404(User, id=userid)
+        table = get_object_or_404(Table, id=validated_data["id"])
+        user.table = table
+        user.save()
+        print(user.table)
+        return table
+
+
+class SelectPrinterSerializer(serializers.Serializer):
+    barcode = serializers.UUIDField(required=True, format="hex_verbose")
+
+    def create(self, validated_data):
+        # user = self.context.get("request").user
+        userid = self.context.get("request").GET.get("userid")
+        user = get_object_or_404(User, id=userid)
+        printer = get_object_or_404(Printer, barcode=validated_data["barcode"])
+        user.printer = printer
+        user.save()
+        print(user.printer)
+        return printer
