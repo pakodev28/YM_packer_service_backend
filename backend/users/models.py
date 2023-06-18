@@ -53,4 +53,3 @@ class Printer(models.Model):
 
     def __str__(self):
         return str(self.barcode)
-
