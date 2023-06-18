@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
+from config.settings import CHECK_DATA_SCIENTIST, DATA_SCIENTIST_PACK
 from users.models import Table, Printer
 from items.models import (
     Cell,
@@ -12,7 +13,6 @@ from items.models import (
     Order,
     OrderSku,
     Sku,
-    Table,
     CartonType,
 )
 
@@ -84,20 +84,17 @@ class CreateOrderSerializer(serializers.Serializer):
             list_of_sku.append(dict_of_sku)
 
         data_for_DS = {"orderId": str(order.orderkey), "items": list_of_sku}
-        check_DS = requests.get("http://localhost:8000/health")
-        if check_DS.status_code == 200:  # Проверка на доступность ДС
-            response = requests.post(
-                "http://localhost:8000/pack", json=data_for_DS
-            )
+        check_DS = requests.get(CHECK_DATA_SCIENTIST)
+        if check_DS.status_code == 200:
+            response = requests.post(DATA_SCIENTIST_PACK, json=data_for_DS)
             return response.json()
         else:
-            return 1  # TODO нужно добавить исключение
+            raise serializers.ValidationError("Не валидные данные")
 
     @staticmethod
     def create_order_sku(order, sku_data):
         sku_id = sku_data["sku"]
         amount = sku_data["amount"]
-
         try:
             sku = Sku.objects.select_for_update().get(sku=sku_id)
         except Sku.DoesNotExist as exc:
@@ -113,21 +110,16 @@ class CreateOrderSerializer(serializers.Serializer):
     @transaction.atomic
     def create(self, validated_data):
         skus_data = validated_data.pop("skus")
-
         order = Order.objects.create(status="forming")
-
         for sku_data in skus_data:
             self.create_order_sku(order, sku_data)
 
-        response_from_DS = self.request_to_DS(
-            order, skus_data
-        )  # Вытягиваем данные от ДС (коробку)
+        response_from_DS = self.request_to_DS(order, skus_data)
         package = response_from_DS.get("package")
         order.recommended_cartontype = get_object_or_404(
             CartonType, cartontype=package
         )
         order.save()
-
         return order
 
 
@@ -198,7 +190,8 @@ class SkuSerializer(serializers.ModelSerializer):
         model = Sku
         fields = ["sku", "name", "image", "amount", "help_text"]
 
-    def get_help_text(self, sku):
+    @staticmethod
+    def get_help_text(sku):
         return sku.help_text
 
     def get_amount(self, sku):
@@ -221,7 +214,8 @@ class GetOrderSerializer(serializers.ModelSerializer):
             "skus",
         ]
 
-    def get_skus(self, order):
+    @staticmethod
+    def get_skus(order):
         sku_serializer = SkuSerializer(
             order.skus.all(), many=True, context={"order": order}
         )
@@ -270,7 +264,8 @@ class StatusOrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ("orderkey", "status")
 
-    def validate_status(self, value):
+    @staticmethod
+    def validate_status(value):
         if value != "collected":
             raise serializers.ValidationError('Status must be "collected"')
         return value
@@ -286,13 +281,12 @@ class SelectTableSerializer(serializers.Serializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
 
     def create(self, validated_data):
-        # user = self.context.get("request").user
-        userid = self.context.get("request").GET.get("userid")
-        user = get_object_or_404(User, id=userid)
+        # userid = self.context.get("request").GET.get("userid")
+        # user = get_object_or_404(User, id=userid)
+        user = self.context.get("request").user
         table = get_object_or_404(Table, id=validated_data["id"])
         user.table = table
         user.save()
-        print(user.table)
         return table
 
 
@@ -300,11 +294,10 @@ class SelectPrinterSerializer(serializers.Serializer):
     barcode = serializers.UUIDField(required=True, format="hex_verbose")
 
     def create(self, validated_data):
-        # user = self.context.get("request").user
-        userid = self.context.get("request").GET.get("userid")
-        user = get_object_or_404(User, id=userid)
+        # userid = self.context.get("request").GET.get("userid")
+        # user = get_object_or_404(User, id=userid)
+        user = self.context.get("request").user
         printer = get_object_or_404(Printer, barcode=validated_data["barcode"])
         user.printer = printer
         user.save()
-        print(user.printer)
         return printer

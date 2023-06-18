@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from .views import (
     CreateOrderAPIView,
@@ -7,14 +7,23 @@ from .views import (
     OrderDetailsAPIView,
     OrderAddNewDataAPIView,
     OrderStatusUpdateAPIView,
-    get_tables,
-    get_token,
-    sign_up,
-    select_table,
-    select_printer,
+    GetTablesApiView,
+    GetTokenApiView,
+    SignUpApiView,
+    SelectTableApiView,
+    SelectPrinterApiView,
 )
 
+registration = [
+    path("sign-up/", SignUpApiView.as_view()),
+    path("login/", GetTokenApiView.as_view())
+]
+
 urlpatterns = [
+    path('auth/', include(registration)),
+    path("tables/", GetTablesApiView.as_view()),
+    path("select-table/<int:pk>/", SelectTableApiView.as_view()),
+    path("select-printer/", SelectPrinterApiView.as_view()),
     path(
         "order/add-packaging-data/",
         OrderAddNewDataAPIView.as_view(),
@@ -38,13 +47,5 @@ urlpatterns = [
         "order/collected/",
         OrderStatusUpdateAPIView.as_view(),
         name="order-collected",
-    ),
-]
-
-urlpatterns += [
-    path("sign-up/", sign_up),
-    path("login/", get_token),
-    path("tables/", get_tables),
-    path("select-table/<int:id>/", select_table),
-    path("select-printer/", select_printer),
+    )
 ]

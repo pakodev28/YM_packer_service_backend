@@ -26,7 +26,7 @@ class Order(models.Model):
         unique=True,
         primary_key=True,
         verbose_name="ID заказа",
-    )  # id заказа
+    )
     who = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -95,7 +95,7 @@ class Order(models.Model):
 
     @property
     def total_skus_quantity(self):
-        """Возвращеает общее количество всех видов sku в заказе"""
+        """Возвращает общее количество всех видов sku в заказе"""
         total = 0
         for order_sku in self.order_skus.all():
             total += order_sku.amount
@@ -227,47 +227,6 @@ class OrderSku(models.Model):
     class Meta:
         verbose_name = "Товары в заказе"
         verbose_name_plural = "Товары в заказе"
-
-
-# class Table(models.Model):
-#     name = models.CharField(max_length=100, unique=True)
-#     user = models.OneToOneField(
-#         User,
-#         on_delete=models.SET_NULL,
-#         related_name="table",
-#         blank=True,
-#         null=True,
-#     )
-
-#     def __str__(self):
-#         return self.name
-
-#     class Meta:
-#         verbose_name = "Стол"
-#         verbose_name_plural = "Столы"
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=["name", "user"], name="unique_name_user"
-#             )
-#         ]
-
-
-# class Printer(models.Model):
-#     barcode = models.UUIDField(default=uuid.uuid4, unique=True)
-#     user = models.OneToOneField(
-#         User,
-#         on_delete=models.SET_NULL,
-#         related_name="printer",
-#         blank=True,
-#         null=True,
-#     )
-
-#     class Meta:
-#         verbose_name = "Принтер"
-#         verbose_name_plural = "Принтеры"
-
-#     def __str__(self):
-#         return str(self.barcode)
 
 
 class Cell(models.Model):

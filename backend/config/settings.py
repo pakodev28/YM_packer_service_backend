@@ -19,8 +19,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
     "rest_framework",
     "rest_framework_simplejwt",
+
     "api.apps.ApiConfig",
     "items.apps.ItemsConfig",
     "users.apps.UsersConfig",
@@ -106,3 +108,6 @@ SIMPLE_JWT = {
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+CHECK_DATA_SCIENTIST = "http://localhost:8000/health"
+DATA_SCIENTIST_PACK = "http://localhost:8000/pack"

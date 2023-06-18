@@ -57,5 +57,10 @@ class Table(models.Model):
 class Printer(models.Model):
     barcode = models.UUIDField(default=uuid.uuid4, unique=True)
 
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Принтер"
+        verbose_name_plural = "Принтеры"
+
     def __str__(self):
         return str(self.barcode)

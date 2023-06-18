@@ -3,7 +3,6 @@ from django.shortcuts import get_object_or_404
 from items.models import Cell, Order
 from users.models import Table
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
@@ -28,35 +27,76 @@ from .serializers import (
 User = get_user_model()
 
 
-@api_view(("POST",))
-@permission_classes((IsAdminUser,))
-def sign_up(request):
-    """
-    Регистрация упаковщика. Доступен только админу.
+class SignUpApiView(APIView):
+    """Регистрация упаковщика.
+    Доступен только админу.
     """
 
-    serializer = SignUpSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    permission_classes = (IsAdminUser,)
+
+    @staticmethod
+    def post(request):
+        serializer = SignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(("POST",))
-def get_token(request):
-    """
-    Авторизация пользователя (выдача токена).
-    """
+class GetTokenApiView(APIView):
+    """Авторизация пользователя (выдача токена)."""
 
-    serializer = GetTokenSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    confirmation_code = serializer.validated_data["confirmation_code"]
-    user = get_object_or_404(User, id=confirmation_code)
-    token = str(AccessToken.for_user(user))
-    return Response({"token": token}, status=status.HTTP_201_CREATED)
+    @staticmethod
+    def post(request):
+        serializer = GetTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        confirmation_code = serializer.validated_data["confirmation_code"]
+        user = get_object_or_404(User, id=confirmation_code)
+        token = str(AccessToken.for_user(user))
+        return Response({"token": token}, status=status.HTTP_201_CREATED)
+
+
+class GetTablesApiView(APIView):
+    """Выдача столов."""
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def get(request):
+        queryset = Table.objects.all()
+        serializer = GetTableSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SelectTableApiView(APIView):
+    """Выбор стола"""
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def post(request, pk):
+        serializer = SelectTableSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(id=pk)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class SelectPrinterApiView(APIView):
+    """Выбор принтера."""
+    permission_classes = (IsAuthenticated,)
+
+    @staticmethod
+    def post(request):
+        serializer = SelectPrinterSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class CreateOrderAPIView(APIView):
-    def post(self, request):
+    @staticmethod
+    def post(request):
         serializer = CreateOrderSerializer(data=request.data)
         if serializer.is_valid():
             order = serializer.save()
@@ -68,7 +108,8 @@ class CreateOrderAPIView(APIView):
 
 
 class LoadSkuOrderToCellView(APIView):
-    def post(self, request):
+    @staticmethod
+    def post(request):
         serializer = LoadSkuOrderToCellSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -80,7 +121,8 @@ class LoadSkuOrderToCellView(APIView):
 
 
 class FindOrderAPIView(APIView):
-    def get(self, request):
+    @staticmethod
+    def get(request):
         serializer = TableForOrderSerializer(data=request.GET)
         serializer.is_valid(raise_exception=True)
         userid = serializer.validated_data["userid"]
@@ -119,7 +161,8 @@ class FindOrderAPIView(APIView):
 
 
 class OrderDetailsAPIView(APIView):
-    def get(self, request):
+    @staticmethod
+    def get(request):
         orderkey = request.GET.get("orderkey")
         order = get_object_or_404(Order, orderkey=orderkey)
 
@@ -133,7 +176,8 @@ class OrderAddNewDataAPIView(APIView):
     API-представление для обогащения заказа новыми данными.
     """
 
-    def patch(self, request):
+    @staticmethod
+    def patch(request):
         serializer = OrderAddNewDataSerializer(data=request.data)
         if serializer.is_valid():
             orderkey = serializer.validated_data["orderkey"]
@@ -161,7 +205,8 @@ class OrderStatusUpdateAPIView(APIView):
     API-представление для обновления статуса заказа.
     """
 
-    def patch(self, request):
+    @staticmethod
+    def patch(request):
         serializer = StatusOrderSerializer(data=request.data)
         if serializer.is_valid():
             orderkey = serializer.validated_data["orderkey"]
@@ -187,30 +232,3 @@ class OrderStatusUpdateAPIView(APIView):
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
-
-
-@api_view(["GET"])
-def get_tables(request):
-    queryset = Table.objects.all()
-    serializer = GetTableSerializer(queryset, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-@api_view(["POST"])
-def select_table(request, id):
-    serializer = SelectTableSerializer(
-        data=request.data, context={"request": request}
-    )
-    serializer.is_valid(raise_exception=True)
-    serializer.save(id=id)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-@api_view(["POST"])
-def select_printer(request):
-    serializer = SelectPrinterSerializer(
-        data=request.data, context={"request": request}
-    )
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
