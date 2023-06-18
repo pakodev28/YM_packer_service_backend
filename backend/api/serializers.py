@@ -199,8 +199,15 @@ class SkuSerializer(serializers.ModelSerializer):
         return None
 
 
+class CartonTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartonType
+        fields = ["barcode", "cartontype"]
+
+
 class GetOrderSerializer(serializers.ModelSerializer):
     skus = serializers.SerializerMethodField()
+    recommended_cartontype = CartonTypeSerializer()
 
     class Meta:
         model = Order

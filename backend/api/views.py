@@ -197,6 +197,7 @@ class OrderStatusUpdateAPIView(APIView):
 
 
 class FindOrderAPIView(APIView):
+    @staticmethod
     def get(self, request):
         user = self.request.user
         table = user.table
