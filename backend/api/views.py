@@ -198,8 +198,8 @@ class OrderStatusUpdateAPIView(APIView):
 
 class FindOrderAPIView(APIView):
     @staticmethod
-    def get(self, request):
-        user = self.request.user
+    def get(request):
+        user = request.user
         table = user.table
 
         oldest_order_id = (
