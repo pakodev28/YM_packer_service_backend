@@ -117,5 +117,5 @@ SIMPLE_JWT = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-CHECK_DATA_SCIENTIST = "http://localhost:8000/health"
-DATA_SCIENTIST_PACK = "http://localhost:8000/pack"
+CHECK_DATA_SCIENTIST = "http://DS:8001/health"
+DATA_SCIENTIST_PACK = "http://DS:8001/pack"
