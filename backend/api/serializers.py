@@ -89,7 +89,8 @@ class CreateOrderSerializer(serializers.Serializer):
             response = requests.post(DATA_SCIENTIST_PACK, json=data_for_DS)
             return response.json()
         else:
-            raise serializers.ValidationError("Не валидные данные")
+            # raise serializers.ValidationError("Не валидные данные")
+            return {"package": None}
 
     @staticmethod
     def create_order_sku(order, sku_data):
@@ -116,9 +117,10 @@ class CreateOrderSerializer(serializers.Serializer):
 
         response_from_DS = self.request_to_DS(order, skus_data)
         package = response_from_DS.get("package")
-        order.recommended_cartontype = get_object_or_404(
-            CartonType, cartontype=package
-        )
+        if package is not None:
+            order.recommended_cartontype = get_object_or_404(
+                CartonType, cartontype=package
+            )
         order.save()
         return order
 
@@ -134,18 +136,18 @@ class CellOrderSkuSerializer(serializers.ModelSerializer):
 class LoadSkuOrderToCellSerializer(serializers.Serializer):
     cell_barcode = serializers.UUIDField(format="hex_verbose")
     order = serializers.UUIDField(format="hex_verbose")
-    table = serializers.SlugRelatedField(
+    table_name = serializers.SlugRelatedField(
         slug_field="name", queryset=Table.objects.all()
     )
     skus = CellOrderSkuSerializer(many=True)
 
     def create(self, validated_data):
-        barcode = validated_data.get("cell_barcode")
+        cell_barcode = validated_data.get("cell_barcode")
         orderkey = validated_data.get("order")
-        table_name = validated_data.get("table")
+        table_name = validated_data.get("table_name")
         skus = validated_data.get("skus")
 
-        cell = get_object_or_404(Cell, barcode=barcode)
+        cell = get_object_or_404(Cell, barcode=cell_barcode)
         order = get_object_or_404(Order, orderkey=orderkey)
         table = get_object_or_404(Table, name=table_name)
 
@@ -169,11 +171,6 @@ class CellSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cell
         fields = ["barcode", "name"]
-
-
-class TableForOrderSerializer(serializers.Serializer):
-    userid = serializers.UUIDField(format="hex_verbose")
-    table_name = serializers.CharField()
 
 
 class FindOrderSerializer(serializers.Serializer):
@@ -281,8 +278,6 @@ class SelectTableSerializer(serializers.Serializer):
     id = serializers.PrimaryKeyRelatedField(read_only=True)
 
     def create(self, validated_data):
-        # userid = self.context.get("request").GET.get("userid")
-        # user = get_object_or_404(User, id=userid)
         user = self.context.get("request").user
         table = get_object_or_404(Table, id=validated_data["id"])
         user.table = table
@@ -294,8 +289,6 @@ class SelectPrinterSerializer(serializers.Serializer):
     barcode = serializers.UUIDField(required=True, format="hex_verbose")
 
     def create(self, validated_data):
-        # userid = self.context.get("request").GET.get("userid")
-        # user = get_object_or_404(User, id=userid)
         user = self.context.get("request").user
         printer = get_object_or_404(Printer, barcode=validated_data["barcode"])
         user.printer = printer

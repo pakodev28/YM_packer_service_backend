@@ -16,11 +16,11 @@ from .views import (
 
 registration = [
     path("sign-up/", SignUpApiView.as_view()),
-    path("login/", GetTokenApiView.as_view())
+    path("login/", GetTokenApiView.as_view()),
 ]
 
 urlpatterns = [
-    path('auth/', include(registration)),
+    path("auth/", include(registration)),
     path("tables/", GetTablesApiView.as_view()),
     path("select-table/<int:pk>/", SelectTableApiView.as_view()),
     path("select-printer/", SelectPrinterApiView.as_view()),
@@ -47,5 +47,5 @@ urlpatterns = [
         "order/collected/",
         OrderStatusUpdateAPIView.as_view(),
         name="order-collected",
-    )
+    ),
 ]

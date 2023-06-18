@@ -15,7 +15,6 @@ from .serializers import (
     GetTokenSerializer,
     LoadSkuOrderToCellSerializer,
     SignUpSerializer,
-    TableForOrderSerializer,
     GetOrderSerializer,
     OrderAddNewDataSerializer,
     StatusOrderSerializer,
@@ -57,6 +56,7 @@ class GetTokenApiView(APIView):
 
 class GetTablesApiView(APIView):
     """Выдача столов."""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
@@ -68,6 +68,7 @@ class GetTablesApiView(APIView):
 
 class SelectTableApiView(APIView):
     """Выбор стола"""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
@@ -82,6 +83,7 @@ class SelectTableApiView(APIView):
 
 class SelectPrinterApiView(APIView):
     """Выбор принтера."""
+
     permission_classes = (IsAuthenticated,)
 
     @staticmethod
@@ -118,46 +120,6 @@ class LoadSkuOrderToCellView(APIView):
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class FindOrderAPIView(APIView):
-    @staticmethod
-    def get(request):
-        serializer = TableForOrderSerializer(data=request.GET)
-        serializer.is_valid(raise_exception=True)
-        userid = serializer.validated_data["userid"]
-        table_name = serializer.validated_data["table_name"]
-
-        table = get_object_or_404(Table, name=table_name)
-        oldest_order_id = (
-            Order.objects.filter(
-                cellorder_skus__cell__table=table, status="forming"
-            )
-            .order_by("cellorder_skus__order__created_at")
-            .values_list("pk", flat=True)
-            .first()
-        )
-
-        if not oldest_order_id:
-            return Response(
-                {"error": "No orders found for the table."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        oldest_order = Order.objects.get(pk=oldest_order_id)
-        oldest_order.who_id = userid
-        oldest_order.status = "collecting"
-        oldest_order.save()
-
-        cells = Cell.objects.filter(
-            cellorder_skus__order=oldest_order_id
-        ).distinct()
-        cell_serializer = CellSerializer(cells, many=True)
-
-        data = {"oldest_order": oldest_order_id, "cells": cell_serializer.data}
-
-        find_order_serializer = FindOrderSerializer(data)
-
-        return Response(find_order_serializer.data)
 
 
 class OrderDetailsAPIView(APIView):
@@ -232,3 +194,39 @@ class OrderStatusUpdateAPIView(APIView):
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class FindOrderAPIView(APIView):
+    def get(self, request):
+        user = self.request.user
+        table = user.table
+
+        oldest_order_id = (
+            Order.objects.filter(
+                cellorder_skus__cell__table=table, status="forming"
+            )
+            .order_by("cellorder_skus__order__created_at")
+            .values_list("pk", flat=True)
+            .first()
+        )
+
+        if not oldest_order_id:
+            return Response(
+                {"error": "No orders found for the table."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        oldest_order = Order.objects.get(pk=oldest_order_id)
+        oldest_order.who_id = user.id
+        oldest_order.status = "collecting"
+        oldest_order.save()
+
+        cells = Cell.objects.filter(
+            cellorder_skus__order=oldest_order_id
+        ).distinct()
+        cell_serializer = CellSerializer(cells, many=True)
+
+        data = {"oldest_order": oldest_order_id, "cells": cell_serializer.data}
+
+        serializer = FindOrderSerializer(data)
+        return Response(serializer.data)
