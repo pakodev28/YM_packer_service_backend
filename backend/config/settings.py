@@ -131,5 +131,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
-CHECK_DATA_SCIENTIST = "http://DS:8001/health"
-DATA_SCIENTIST_PACK = "http://DS:8001/pack"
+CHECK_DATA_SCIENTIST = "http://ds:8001/health"
+DATA_SCIENTIST_PACK = "http://ds:8001/pack"
+
+CSRF_TRUSTED_ORIGINS = ["http://*.127.0.0.1", "http://*.backend",
+                        "http://backend", "http://*.localhost",
+                        "http://localhost"]

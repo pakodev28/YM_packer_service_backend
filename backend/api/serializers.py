@@ -84,13 +84,22 @@ class CreateOrderSerializer(serializers.Serializer):
             list_of_sku.append(dict_of_sku)
 
         data_for_DS = {"orderId": str(order.orderkey), "items": list_of_sku}
-        check_DS = requests.get(CHECK_DATA_SCIENTIST)
-        if check_DS.status_code == 200:
-            response = requests.post(DATA_SCIENTIST_PACK, json=data_for_DS)
-            print(response.json())
-            return response.json()
-        else:
-            # raise serializers.ValidationError("Не валидные данные")
+        # check_DS = requests.get(CHECK_DATA_SCIENTIST)
+        # if check_DS.status_code == 200:
+        #     response = requests.post(DATA_SCIENTIST_PACK, json=data_for_DS)
+        #     print(response.json())
+        #     return response.json()
+        # else:
+        #     # raise serializers.ValidationError("Не валидные данные")
+        #     return {"package": None}
+        try:
+            check_DS = requests.get(CHECK_DATA_SCIENTIST)
+            if check_DS.status_code == 200:
+                response = requests.post(DATA_SCIENTIST_PACK, json=data_for_DS)
+                return response.json()
+            else:
+                return {"package": None}
+        except ConnectionError:
             return {"package": None}
 
     @staticmethod
@@ -228,6 +237,10 @@ class GetOrderSerializer(serializers.ModelSerializer):
 
 
 class OrderSkuSerializer(serializers.ModelSerializer):
+    packaging_number = serializers.IntegerField(required=True)
+    sku = serializers.UUIDField(format="hex_verbose",
+                                required=True)
+
     class Meta:
         model = OrderSku
         fields = ["sku", "packaging_number"]
