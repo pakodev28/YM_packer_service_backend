@@ -42,12 +42,11 @@ DB_PORT=5432
 ```
 - Build docker on the server-create:
 ```
-sudo docker-compose up -d --build
+sudo docker-compose up -d
 ```
 - Next Step:
 ```
-docker-compose exec backend python manage.py makemigrations
-docker-compose exec backend python manage.py migrate  
+docker-compose exec backend python manage.py migrate 
 docker-compose exec backend python manage.py createsuperuser
 docker-compose exec backend python manage.py collectstatic --no-input
 ```
