@@ -6,7 +6,7 @@ services:
       - db_volume:/var/lib/postgresql/data/
     env_file:
       - ./.env
-  DS:
+  ds:
     image: timurs55/yapack:0.1
     ports:
       - "8001:8001"
@@ -16,13 +16,14 @@ services:
 
   backend:
     image: dtankhaev/image_backend_frankenstein:v1.0.0
+#    image: pako28/ym_packer_service:v1.1
     restart: always
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
       - docs:/app/docs/
     depends_on:
-      - DS
+      - ds
     env_file:
       - ./.env
 
