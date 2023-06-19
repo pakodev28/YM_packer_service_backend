@@ -217,7 +217,7 @@ class OrderSku(models.Model):
     )
     amount = models.PositiveIntegerField(
         verbose_name="Количество товара в заказе"
-    )  # Количество товара в заказе
+    )
     packaging_number = models.PositiveSmallIntegerField(
         blank=True,
         null=True,
