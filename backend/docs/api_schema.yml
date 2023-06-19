@@ -1,0 +1,434 @@
+openapi: 3.0.0
+info:
+  title: ФРАНКЕНШТЕЙН API
+  version: 1.0.0
+paths:
+  /login/:
+    post:
+      summary: Авторизация пользователя (выдача токена).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetTokenSerializer'
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /tables/:
+    get:
+      summary: Выдача столов.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Table'
+  /select-table/{pk}/:
+    post:
+      summary: Выбор стола.
+      operationId: selectTable
+      parameters:
+        - name: pk
+          in: path
+          description: Идентификатор стола
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Идентификатор стола
+  /select-printer/:
+    post:
+      summary: Выбор принтера.
+      operationId: selectPrinter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                barcode:
+                  type: string
+                  format: uuid
+                  description: Штрих-код принтера
+                  example: 01234567-89ab-cdef-0123-456789abcdef
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  barcode:
+                    type: string
+                    format: uuid
+                    description: Штрих-код принтера
+                    example: 01234567-89ab-cdef-0123-456789abcdef
+  /order/create/:
+    post:
+      summary: Создание заказа.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderSerializer'
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderkey:
+                    type: string
+                  order_status:
+                    type: string
+  /upload-to-cell/:
+    post:
+      summary: Загрузка SKU в ячейку.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadSkuOrderToCellSerializer'
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /order/find/:
+    get:
+      summary: Поиск заказа.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindOrderSerializer'
+        '404':
+          description: Orders not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /order/details/:
+    get:
+      summary: Получение информации о заказе.
+      parameters:
+        - name: orderkey
+          in: query
+          description: Идентификатор заказа
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: 01234567-89ab-cdef-0123-456789abcdef
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrderSerializer'
+  /order/add-packaging-data/:
+    patch:
+      summary: Обновление данных заказа.
+      description: >
+        Представление API для обогащения заказа новыми данными.
+        Метод PATCH используется для обновления существующих данных заказа.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderAddNewDataSerializer'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Сообщение об успешном обновлении заказа
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Ошибка запроса
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Заказ не найден
+  /order/collected/:
+    patch:
+      summary: Обновление статуса заказа.
+      description: >
+        Представление API для обновления статуса заказа.
+        Метод PATCH используется для установки статуса заказа в "collected".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusOrderSerializer'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Сообщение об успешном обновлении статуса заказа
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Ошибка запроса
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Заказ не найден
+components:
+   schemas:
+    GetTokenSerializer:
+      type: object
+      properties:
+        confirmation_code:
+          type: string
+    Table:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        available:
+          type: boolean
+    CreateOrderSerializer:
+      type: object
+      properties:
+        skus:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateOrderSkuSerializer'
+    CreateOrderSkuSerializer:
+      type: object
+      properties:
+        sku:
+          type: string
+        amount:
+          type: integer
+    CartonType:
+      type: object
+      properties:
+        id:
+          type: integer
+        cartontype:
+          type: string
+    LoadSkuOrderToCellSerializer:
+      type: object
+      properties:
+        cell_barcode:
+          type: string
+          format: uuid
+          description: Штрих-код ячейки
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        order:
+          type: string
+          format: uuid
+          description: Идентификатор заказа
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        table_name:
+          type: string
+          description: Название стола
+        skus:
+          type: array
+          items:
+            $ref: '#/components/schemas/CellOrderSkuSerializer'
+    CellOrderSkuSerializer:
+      type: object
+      properties:
+        sku:
+          type: string
+          format: uuid
+          description: Штрих-код SKU
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        quantity:
+          type: integer
+    FindOrderSerializer:
+      type: object
+      properties:
+        oldest_order:
+          type: string
+          format: uuid
+          description: Идентификатор самого старого заказа
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/CellSerializer'
+    CellSerializer:
+      type: object
+      properties:
+        barcode:
+          type: string
+          format: uuid
+          description: Штрих-код ячейки
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        name:
+          type: string
+    SkuSerializer:
+      type: object
+      properties:
+        sku:
+          type: string
+          format: uuid
+          description: Идентификатор SKU
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        name:
+          type: string
+        image:
+          type: string
+          format: base64
+          description: Изображение SKU в формате base64
+        amount:
+          type: integer
+          description: Количество SKU в заказе
+        help_text:
+          type: string
+          description: Подсказка для SKU
+    CartonTypeSerializer:
+      type: object
+      properties:
+        barcode:
+          type: string
+          format: uuid
+          description: Штрих-код типа коробки
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        cartontype:
+          type: string
+    GetOrderSerializer:
+      type: object
+      properties:
+        orderkey:
+          type: string
+          format: uuid
+          description: Идентификатор заказа
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        recommended_cartontype:
+          $ref: '#/components/schemas/CartonTypeSerializer'
+        total_skus_quantity:
+          type: integer
+          description: Общее количество SKU в заказе
+        skus:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuSerializer'
+    OrderSkuSerializer:
+      type: object
+      properties:
+        sku:
+          type: string
+          format: uuid
+          description: Идентификатор SKU
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        packaging_number:
+          type: integer
+          description: Номер упаковки для SKU
+    OrderAddNewDataSerializer:
+      type: object
+      properties:
+        orderkey:
+          type: string
+          format: uuid
+          description: Идентификатор заказа
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        selected_cartontypes:
+          type: array
+          description: Выбранные типы коробок
+          items:
+            type: string
+            format: uuid
+            example: 01234567-89ab-cdef-0123-456789abcdef
+        total_packages:
+          type: integer
+          description: Общее количество упаковок
+        skus:
+          type: array
+          description: Информация о SKU
+          items:
+            $ref: '#/components/schemas/OrderSkuSerializer'
+    StatusOrderSerializer:
+      type: object
+      properties:
+        orderkey:
+          type: string
+          format: uuid
+          description: Идентификатор заказа
+          example: 01234567-89ab-cdef-0123-456789abcdef
+        status:
+          type: string
+          description: Статус заказа
+          enum:
+            - collected
+      required:
+        - orderkey
+        - status
