@@ -84,14 +84,6 @@ class CreateOrderSerializer(serializers.Serializer):
             list_of_sku.append(dict_of_sku)
 
         data_for_DS = {"orderId": str(order.orderkey), "items": list_of_sku}
-        # check_DS = requests.get(CHECK_DATA_SCIENTIST)
-        # if check_DS.status_code == 200:
-        #     response = requests.post(DATA_SCIENTIST_PACK, json=data_for_DS)
-        #     print(response.json())
-        #     return response.json()
-        # else:
-        #     # raise serializers.ValidationError("Не валидные данные")
-        #     return {"package": None}
         try:
             check_DS = requests.get(CHECK_DATA_SCIENTIST)
             if check_DS.status_code == 200:
