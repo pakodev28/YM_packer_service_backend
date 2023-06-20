@@ -16,7 +16,6 @@ services:
 
   backend:
     image: dtankhaev/image_backend_frankenstein:v1.0.0
-#    image: pako28/ym_packer_service:v1.1
     restart: always
     volumes:
       - static_value:/app/static/
