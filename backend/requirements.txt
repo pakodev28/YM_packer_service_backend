@@ -16,4 +16,4 @@ python-dotenv==1.0.0
 pytz==2023.3
 requests==2.31.0
 sqlparse==0.4.4
-urllib3==2.0.3
+urllib3==2.2.2
