@@ -3,7 +3,7 @@ certifi==2023.5.7
 charset-normalizer==3.1.0
 Django==4.2.1
 django-cors-headers==4.1.0
-djangorestframework==3.14.0
+djangorestframework==3.15.2
 djangorestframework-simplejwt==5.2.2
 drf-extra-fields==3.5.0
 filetype==1.2.0
